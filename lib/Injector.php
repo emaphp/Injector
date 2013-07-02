@@ -34,27 +34,13 @@ class Injector extends Pimple implements Iterator {
 	/*
 	 * Injection methods
 	 */
-	
-	/**
-	 * Injects a value by id into an object
-	 * @param object $obj
-	 * @param string $id
-	 * @throws InvalidArgumentException
-	 */
-	public function inject(&$obj, $id) {
-		if (!is_object($obj)) {
-			throw new InvalidArgumentException(sprintf("Parameter must be of type 'object'. Type '%s' not supported.", gettype($object)));
-		}
-		
-		$obj->$id = $this->offsetGet($id);
-	}
-	
+
 	/**
 	 * Injects a list of services into an object
 	 * @param unknown $obj
 	 * @throws InvalidArgumentException
 	 */
-	public function injectMany(&$obj) {
+	public function inject(&$obj) {
 		if (!is_object($obj)) {
 			throw new InvalidArgumentException(sprintf("Parameter must be of type 'object'. Type '%s' not supported.", gettype($object)));
 		}

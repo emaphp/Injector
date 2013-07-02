@@ -89,7 +89,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 	
 	public function testInjectMany() {
 		$foo = new \stdClass();
-		$this->container->injectMany($foo, 'x', 'z');
+		$this->container->inject($foo, 'x', 'z');
 		
 		$this->assertObjectHasAttribute('x', $foo);
 		$this->assertTrue(is_object($foo->x));
