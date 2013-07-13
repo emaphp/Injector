@@ -53,6 +53,17 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 			$obj->name = 'service_z';
 			return $obj;
 		};
+		
+		/**
+		 * Shared service test
+		 */
+		$this->scontainer = new \Injector();
+		
+		$this->scontainer['shared'] = $this->scontainer->share(function($c) {
+			$shared = new stdClass();
+			$shared->name = 'shared';
+			return $shared;
+		});
 	}
 	
 	public function testIterator() {
@@ -125,5 +136,16 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$this->assertEquals('stdClass', get_class($foo->z));
 		$this->assertObjectHasAttribute('name', $foo->z);
 		$this->assertEquals('service_z', $foo->z->name);
+	}
+	
+	public function testShared() {
+		$x = new stdClass();
+		$this->scontainer->inject($x, 'shared');
+		$this->assertEquals('shared', $x->shared->name);
+		$x->shared->name = 'x_shared';
+		
+		$y = new stdClass();
+		$this->scontainer->inject($y, 'shared');
+		$this->assertEquals('x_shared', $y->shared->name);
 	}
 }
