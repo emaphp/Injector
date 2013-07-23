@@ -1,10 +1,16 @@
 <?php
+/**
+ * Injector class main test
+ * Author: Emmanuel Antico
+ */
+use Injector\Injector;
+
 class InjectorTest extends \PHPUnit_Framework_TestCase {
 	public function setUp() {
 		/*
 		 * Iterator test
 		 */
-		$this->itcontainer = new \Injector();
+		$this->itcontainer = new Injector();
 		
 		//declare some services
 		$this->itcontainer['dummy_service'] = function ($c) {
@@ -16,7 +22,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		/*
 		 * Dependency test
 		 */
-		$this->dcontainer = new \Injector();
+		$this->dcontainer = new Injector();
 		
 		$this->dcontainer['service_a'] = function ($c) {
 			$obj = new stdClass();
@@ -34,7 +40,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		/**
 		 * Injection test
 		 */
-		$this->container = new \Injector();
+		$this->container = new Injector();
 		
 		$this->container['x'] = function ($c) {
 			$obj = new stdClass();
@@ -57,7 +63,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		/**
 		 * Shared service test
 		 */
-		$this->scontainer = new \Injector();
+		$this->scontainer = new Injector();
 		
 		$this->scontainer['shared'] = $this->scontainer->share(function($c) {
 			$shared = new stdClass();
@@ -66,6 +72,9 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		});
 	}
 	
+	/**
+	 * Tests Iterator interface implementation
+	 */
 	public function testIterator() {
 		foreach ($this->itcontainer as $k => $v) {
 			$this->assertEquals('dummy_service', $k);
@@ -76,6 +85,9 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		}
 	}
 	
+	/**
+	 * Tests service dependencies
+	 */
 	public function testDependency() {
 		$service_b = $this->dcontainer['service_b'];
 		$this->assertTrue(is_object($service_b));
@@ -88,6 +100,9 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$this->assertEquals('service_a', $service_b->service_a->name);
 	}
 	
+	/**
+	 * Tests simple attibute injection
+	 */
 	public function testInject() {
 		$foo = new \stdClass();
 		$this->container->inject($foo, 'x');
@@ -98,6 +113,9 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$this->assertEquals('service_x', $foo->x->name);
 	}
 	
+	/**
+	 * Tests arbitrary attibute injection
+	 */
 	public function testInjectMany() {
 		$foo = new \stdClass();
 		$this->container->inject($foo, 'x', 'z');
@@ -115,9 +133,12 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$this->assertEquals('service_z', $foo->z->name);
 	}
 	
+	/**
+	 * Tests injection of all attributes
+	 */
 	public function testInjectAll() {
 		$foo = new \stdClass();
-		$this->container->injectAll($foo);
+		$this->container->inject($foo);
 		
 		$this->assertObjectHasAttribute('x', $foo);
 		$this->assertTrue(is_object($foo->x));
@@ -138,6 +159,9 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$this->assertEquals('service_z', $foo->z->name);
 	}
 	
+	/**
+	 * Tests shared services injection
+	 */
 	public function testShared() {
 		$x = new stdClass();
 		$this->scontainer->inject($x, 'shared');
@@ -147,5 +171,32 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$y = new stdClass();
 		$this->scontainer->inject($y, 'shared');
 		$this->assertEquals('x_shared', $y->shared->name);
+	}
+	
+	/**
+	 * Tests dependency autoloading through Containers
+	 */
+	public function testComponentLoad() {
+		$component = new CustomComponent();
+		$this->assertTrue(is_string($component->container));
+		$this->assertEquals('TestContainer', $component->container);
+		$component->__load();
+		$this->assertObjectHasAttribute('test_service', $component);
+		$this->assertEquals('TestService', get_class($component->test_service));
+		$this->assertObjectHasAttribute('test_object', $component);
+		$this->assertEquals('stdClass', get_class($component->test_object));
+	}
+	
+	/**
+	 * Tests custom dependency autoloading through Containers
+	 */
+	public function testCustomComponentLoad() {
+		$component = new CustomComponent();
+		$this->assertTrue(is_string($component->container));
+		$this->assertEquals('TestContainer', $component->container);
+		$component->__load('test_service');
+		$this->assertObjectHasAttribute('test_service', $component);
+		$this->assertEquals('TestService', get_class($component->test_service));
+		$this->assertObjectNotHasAttribute('test_object', $component);
 	}
 }

@@ -1,5 +1,7 @@
 <?php
-class Injector extends Pimple implements Iterator {
+namespace Injector;
+
+class Injector extends \Pimple implements \Iterator {
 	/*
 	 * Iterator methods
 	 */
@@ -44,20 +46,23 @@ class Injector extends Pimple implements Iterator {
 		if (!is_object($obj)) {
 			throw new InvalidArgumentException(sprintf("Parameter must be of type 'object'. Type '%s' not supported.", gettype($object)));
 		}
-		
-		//count parameters
+
 		$nargs = func_num_args();
 		
-		if ($nargs <= 1) {
-			//nothing to inject
-			return;
+		//if no arguments are passed then all services are injected
+		if ($nargs == 1) {
+			$args = array_keys($this->values);
+			$nargs = count($args);
 		}
-		
-		//get services ids
-		$args = func_get_args();
-		
+		else {
+			//get services ids
+			$args = func_get_args();
+			array_shift($args);
+			$nargs = count($args);
+		}
+
 		//inject services
-		for ($i = 1; $i < $nargs; $i++) {
+		for ($i = 0; $i < $nargs; $i++) {
 			$id = $args[$i];
 			$obj->$id = $this->offsetGet($id);
 		}
@@ -68,15 +73,16 @@ class Injector extends Pimple implements Iterator {
 	 * @param object $obj
 	 * @throws InvalidArgumentException
 	 */
-	public function injectAll(&$obj) {
+	public function injectDependencies(&$obj, $dependencies = null) {
 		if (!is_object($obj)) {
 			throw new InvalidArgumentException(sprintf("Parameter must be of type 'object'. Type '%s' not supported.", gettype($object)));
 		}
 		
-		//get service ids
-		$keys = array_keys($this->values);
+		if (is_null($dependencies)) {
+			$dependencies = array_keys($this->values);
+		}
 		
-		foreach ($keys as $id) {
+		foreach ($dependencies as $id) {
 			$obj->$id = $this->offsetGet($id);
 		}
 	}
