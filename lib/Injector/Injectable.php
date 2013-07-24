@@ -2,7 +2,7 @@
 namespace Injector;
 
 trait Injectable {
-	public function __load() {
+	public function __setup() {
 		//check container class declaration
 		if (!is_string($this->container) || empty($this->container)) {
 			throw new \RuntimeException("No container class has been defined for this class");

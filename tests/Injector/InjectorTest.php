@@ -180,7 +180,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$component = new CustomComponent();
 		$this->assertTrue(is_string($component->container));
 		$this->assertEquals('TestContainer', $component->container);
-		$component->__load();
+		$component->__setup();
 		$this->assertObjectHasAttribute('test_service', $component);
 		$this->assertEquals('TestService', get_class($component->test_service));
 		$this->assertObjectHasAttribute('test_object', $component);
@@ -194,7 +194,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 		$component = new CustomComponent();
 		$this->assertTrue(is_string($component->container));
 		$this->assertEquals('TestContainer', $component->container);
-		$component->__load('test_service');
+		$component->__setup('test_service');
 		$this->assertObjectHasAttribute('test_service', $component);
 		$this->assertEquals('TestService', get_class($component->test_service));
 		$this->assertObjectNotHasAttribute('test_object', $component);
