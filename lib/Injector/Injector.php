@@ -64,26 +64,15 @@ class Injector extends \Pimple implements \Iterator {
 		//inject services
 		for ($i = 0; $i < $nargs; $i++) {
 			$id = $args[$i];
-			$obj->$id = $this->offsetGet($id);
-		}
-	}
-	
-	/**
-	 * Injects all declared services into an object
-	 * @param object $obj
-	 * @throws InvalidArgumentException
-	 */
-	public function injectDependencies(&$obj, $dependencies = null) {
-		if (!is_object($obj)) {
-			throw new InvalidArgumentException(sprintf("Parameter must be of type 'object'. Type '%s' not supported.", gettype($object)));
-		}
-		
-		if (is_null($dependencies)) {
-			$dependencies = array_keys($this->values);
-		}
-		
-		foreach ($dependencies as $id) {
-			$obj->$id = $this->offsetGet($id);
+			
+			if (is_array($id)) {
+				for ($j = 0, $m = count($id); $j < $m; $j++) {
+					$this->inject($obj, $id[$j]);
+				}
+			}
+			else {
+				$obj->$id = $this->offsetGet($id);
+			}
 		}
 	}
 }

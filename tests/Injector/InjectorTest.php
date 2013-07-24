@@ -176,11 +176,11 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * Tests dependency autoloading through Containers
 	 */
-	public function testComponentLoad() {
+	public function testComponentSetup() {
 		$component = new CustomComponent();
 		$this->assertTrue(is_string($component->container));
 		$this->assertEquals('TestContainer', $component->container);
-		$component->__setup();
+		$component->__setup();//here
 		$this->assertObjectHasAttribute('test_service', $component);
 		$this->assertEquals('TestService', get_class($component->test_service));
 		$this->assertObjectHasAttribute('test_object', $component);
@@ -190,13 +190,68 @@ class InjectorTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * Tests custom dependency autoloading through Containers
 	 */
-	public function testCustomComponentLoad() {
+	public function testCustomComponentSetup() {
 		$component = new CustomComponent();
 		$this->assertTrue(is_string($component->container));
 		$this->assertEquals('TestContainer', $component->container);
-		$component->__setup('test_service');
+		$component->__setup('test_service');//here
 		$this->assertObjectHasAttribute('test_service', $component);
 		$this->assertEquals('TestService', get_class($component->test_service));
 		$this->assertObjectNotHasAttribute('test_object', $component);
+	}
+	
+	/**
+	 * Tests custom dependency autoloading through Containers
+	 */
+	public function testCustomComponentArraySetup() {
+		$component = new CustomComponent();
+		$this->assertTrue(is_string($component->container));
+		$this->assertEquals('TestContainer', $component->container);
+		$component->__setup(array('test_service'));//here
+		$this->assertObjectHasAttribute('test_service', $component);
+		$this->assertEquals('TestService', get_class($component->test_service));
+		$this->assertObjectNotHasAttribute('test_object', $component);
+	}
+	
+	/**
+	 * Tests custom dependency autoloading through Containers
+	 */
+	public function testCustomComponentArraySetup2() {
+		$component = new CustomComponent();
+		$this->assertTrue(is_string($component->container));
+		$this->assertEquals('TestContainer', $component->container);
+		$component->__setup(array('test_service', 'test_object'));//here
+		$this->assertObjectHasAttribute('test_service', $component);
+		$this->assertEquals('TestService', get_class($component->test_service));
+		$this->assertObjectHasAttribute('test_object', $component);
+		$this->assertEquals('stdClass', get_class($component->test_object));
+	}
+	
+	/**
+	 * Tests custom dependency autoloading through Containers
+	 */
+	public function testCustomComponentArraySetup3() {
+		$component = new CustomComponent();
+		$this->assertTrue(is_string($component->container));
+		$this->assertEquals('TestContainer', $component->container);
+		$component->__setup(array('test_service'), 'test_object');//here
+		$this->assertObjectHasAttribute('test_service', $component);
+		$this->assertEquals('TestService', get_class($component->test_service));
+		$this->assertObjectHasAttribute('test_object', $component);
+		$this->assertEquals('stdClass', get_class($component->test_object));
+	}
+	
+	/**
+	 * Tests custom dependency autoloading through Containers
+	 */
+	public function testCustomComponentArraySetup4() {
+		$component = new CustomComponent();
+		$this->assertTrue(is_string($component->container));
+		$this->assertEquals('TestContainer', $component->container);
+		$component->__setup(array('test_service'), array('test_object'));//here
+		$this->assertObjectHasAttribute('test_service', $component);
+		$this->assertEquals('TestService', get_class($component->test_service));
+		$this->assertObjectHasAttribute('test_object', $component);
+		$this->assertEquals('stdClass', get_class($component->test_object));
 	}
 }

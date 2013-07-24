@@ -5,7 +5,7 @@ A dependency injection class based on Pimple
 
 **Author**: Emmanuel Antico<br/>
 **Last Modification**: 2013/07/24<br/>
-**Version**: 1.1.0
+**Version**: 1.1.1
 
 <br/>
 Installation
@@ -28,7 +28,7 @@ Installation is made via composer. Add the following lines to the composer.json 
 Features
 --------
 <br/>
-The *Injector* class extends *Pimple* ([http://pimple.sensiolabs.org/](http://pimple.sensiolabs.org/ "")) and implements the *Iterator* interface and the injection methods *inject* and *injectDependencies*.
+The *Injector* class extends *Pimple* ([http://pimple.sensiolabs.org/](http://pimple.sensiolabs.org/ "")) and implements the *Iterator* interface and the *inject* method, which receives an object and sets the appropiate services within it.
 <br/>
 By adding support to the Iterator interface containers can be traversable using a **foreach**.
 
@@ -71,7 +71,7 @@ $foo = new \stdClass();
 //inject the logger service
 $container->inject($foo, 'logger');
 ```
-We can define an arbitrary number of services. This example injects both services inside an object.
+We can define an arbitrary number of services. This example injects both services ('logger' and 'twig') inside an object.
 ```php
 <?php
 $foo = new \stdClass();
@@ -85,12 +85,12 @@ $foo = new \stdClass();
 //inject all services
 $container->inject($foo);
 ```
-We can also specify the services as an array through the *injectDependencies* method.
+We can also specify the services as an array using the same method.
 ```php
 <?php
 $foo = new \stdClass();
 //inject all services
-$container->injectDependencies($foo, array('logger', 'twig'));
+$container->inject($foo, array('logger', 'twig'));
 ```
 
 <br/>

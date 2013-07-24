@@ -14,10 +14,10 @@ trait Injectable {
 		
 		//if no arguments are passed inject all declared dependencies
 		if (func_num_args() == 0) {
-			$container->injectDependencies($this);
+			$container->inject($this);
 		}
 		else {
-			$container->injectDependencies($this, func_get_args());
+			$container->inject($this, func_get_args());
 		}
 	}
 }
