@@ -12,7 +12,7 @@ class ClassProfile {
 	 * Class constructor
 	 * @var \ReflectionMethod
 	 */
-	public $constuctor;
+	public $constructor;
 	
 	/**
 	 * Class name
@@ -44,14 +44,22 @@ class ClassProfile {
 	 */
 	public $properties = array();
 	
+	/**
+	 * Creates a new class profile
+	 * @param string $className
+	 * @param string $container
+	 * @throws \RuntimeException
+	 */
 	public function __construct($className, $container = null) {
 		$this->className = $className;
 		$this->container = $container;
 		
+		//check for default container
 		if (is_null($container)) {
 			$this->containerClass = $container;
 		}
 		elseif (is_object($container)) {
+			//check container type
 			if (!($container instanceof \Pimple)) {
 				throw new \RuntimeException("Container is not a valid instance of Pimple");
 			}
@@ -77,8 +85,9 @@ class ClassProfile {
 		//extract doc comments
 		$doc = $this->class->getDocComment();
 		
-		//check if class has doc comments
+		//check if class has doc comments (@container {container_class})
 		if ($doc !== false && preg_match('/@container[ ]+([\w|\\\\]+)/', $doc, $matches)) {
+			//set only if profile does not provide a default container
 			if (is_null($this->container)) {
 				$this->container = $this->containerClass = $matches[1];
 			}
@@ -94,63 +103,48 @@ class ClassProfile {
 			$doc = $property->getDocComment();
 			
 			if ($doc !== false) {
-				if (preg_match('/@inject[ ]+(([\w]+)\(([\w|\\\\]+::)?([\w]+)\)|([\w|\\\\]+::)?([\w]+))/', $doc, $matches)) {
-					//is setter defined?
-					if (!empty($matches[2])) {
-						$setter = $matches[2];
+				//get injected properties (@inject [container_class::]{service_name})
+				if (preg_match('/@inject[ ]+([\w|\\\\]+::)?([\w]+)/', $doc, $matches)) {
+					$service = $matches[2];
 						
-						//check container
-						if (empty($matches[3])) {
-							if (is_null($this->container)) {
-								throw new \RuntimeException("No default container specified for class '{$this->className}'");
-							}
+					//check container
+					if (empty($matches[1])) {
+						//set default container, if any
+						if (is_null($this->container)) {
+							throw new \RuntimeException("No default container specified for class '{$this->className}'");
+						}
 							
-							$container = $this->containerClass;
-						}
-						else {
-							$container = substr($matches[3], 0, -2);
-						}
-						
-						$service = $matches[4];
+						$container = $this->containerClass;
 					}
-					//no setter
 					else {
-						$setter = null;
-						$service = $matches[6];
-						
-						//check container
-						if (empty($matches[5])) {
-							if (is_null($this->container)) {
-								throw new \RuntimeException("No default container specified for class '{$this->className}'");
-							}
-								
-							$container = $this->containerClass;
-						}
-						else {
-							$container = substr($matches[5], 0, -2);
-						}
+						$container = substr($matches[1], 0, -2);
 					}
 				}
 				
-				$this->properties[$property->getName()] = array('setter' => $setter,
-																'container' => $container,
-																'service' => $service);
+				//add property profile
+				$this->properties[$property->getName()] = array('container'  => $container,
+																'service'    => $service,
+																'reflection' => $property);
 			}
 		}
 		
 		/**
 		 * PARSE CONSTRUCTOR
 		 */
+		//get constructor, if any
 		if ($this->class->hasMethod('__construct')) {
-			$this->constuctor = new \ReflectionMethod($this->className, '__construct');
-			$doc = $this->constuctor->getDocComment();
+			$this->constructor = new \ReflectionMethod($this->className, '__construct');
+			$doc = $this->constructor->getDocComment();
 			
+			//get injected parameters
 			if (preg_match('/@inject/', $doc)) {
+				//@inject {$var} [container_class::]{service_name}
 				$tmatches = preg_match_all('/@inject[ ]+\$([\w]+)[ ]+([\w|\\\\]+::)?([\w]+)/', $doc, $matches);
 					
 				for ($i = 0; $i < $tmatches; $i++) {
 					//check container
 					if (empty($matches[2][$i])) {
+						//set default container, if any
 						if (is_null($this->container)) {
 							throw new \RuntimeException("No default container specified for class '{$this->className}'");
 						}
@@ -161,12 +155,14 @@ class ClassProfile {
 						$container = substr($matches[2][$i], 0, -2);
 					}
 			
-					$this->constructorParams[$matches[1][$i]] = array('container' => $container, 'service' => $matches[3][$i]);
+					//add parameter profile
+					$this->constructorParams[$matches[1][$i]] = array('container' => $container,
+																	  'service' => $matches[3][$i]);
 				}
 			}
 		}
 		else {
-			$this->constuctor = null;
+			$this->constructor = null;
 		}
 	}	
 }

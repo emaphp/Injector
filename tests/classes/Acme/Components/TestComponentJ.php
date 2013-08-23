@@ -1,25 +1,41 @@
 <?php
 namespace Acme\Components;
 
-use Acme\Services\MailService;
-
+use Acme\Services\HTTPService;
 /**
- * 
+ * @container Acme\Containers\BigContainer
  * @author emaphp
- * @container Acme\Containers\TestContainer
  */
 class TestComponentJ {
+	public $name;
+	
+	public $id;
+	
 	/**
-	 * @inject setHTTP(Acme\Containers\AnotherContainer::http)
-	 * @var unknown
+	 * @inject mail
 	 */
+	private $mail;
+	
 	protected $http;
 	
-	public function setHTTP($http) {
+	/**
+	 * 
+	 * @param HTTPService $http
+	 * @param unknown $name
+	 * @param number $id
+	 * @inject $http http
+	 */
+	public function __construct(HTTPService $http, $name, $id = 1) {
 		$this->http = $http;
+		$this->name = $name;
+		$this->id = $id;
 	}
 	
-	public function getHTTP() {
+	public function getMail() {
+		return $this->mail;
+	}
+	
+	public function getHttp() {
 		return $this->http;
 	}
 }

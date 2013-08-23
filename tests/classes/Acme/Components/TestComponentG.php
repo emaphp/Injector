@@ -1,8 +1,6 @@
 <?php
 namespace Acme\Components;
 
-use Acme\Services\MailService;
-
 /**
  * 
  * @author emaphp

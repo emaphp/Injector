@@ -1,6 +1,11 @@
 <?php
 use Injector\ClassProfile;
 
+/**
+ * 
+ * @author emaphp
+ * @group profile
+ */
 class ClassProfileTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @expectedException \RuntimeException
@@ -43,34 +48,13 @@ class ClassProfileTest extends \PHPUnit_Framework_TestCase {
 		$profile = new ClassProfile('Acme\Components\TestComponentF');
 		$this->assertEquals('Acme\Containers\TestContainer', $profile->containerClass);
 		$this->assertArrayHasKey('mail', $profile->properties);
-		$this->assertEquals(array('container' => 'Acme\Containers\TestContainer', 'service' => 'mail', 'setter' => null), $profile->properties['mail']);
+		$this->assertEquals(array('container' => 'Acme\Containers\TestContainer', 'service' => 'mail', 'reflection' => new \ReflectionProperty('Acme\Components\TestComponentF', 'mail')), $profile->properties['mail']);
 	}
 	
 	public function testComponentG() {
 		$profile = new ClassProfile('Acme\Components\TestComponentG');
 		$this->assertNull($profile->containerClass);
 		$this->assertArrayHasKey('mail', $profile->properties);
-		$this->assertEquals(array('container' => 'Acme\Containers\TestContainer', 'service' => 'mail', 'setter' => null), $profile->properties['mail']);
-	}
-	
-	/**
-	 * @expectedException \RuntimeException
-	 */
-	public function testComponentH() {
-		$profile = new ClassProfile('Acme\Components\TestComponentH');
-	}
-	
-	public function testComponentI() {
-		$profile = new ClassProfile('Acme\Components\TestComponentI');
-		$this->assertEquals('Acme\Containers\TestContainer', $profile->containerClass);
-		$this->assertArrayHasKey('mail', $profile->properties);
-		$this->assertEquals(array('container' => 'Acme\Containers\TestContainer', 'service' => 'mail', 'setter' => 'setMail'), $profile->properties['mail']);
-	}
-	
-	public function testComponentJ() {
-		$profile = new ClassProfile('Acme\Components\TestComponentJ');
-		$this->assertEquals('Acme\Containers\TestContainer', $profile->containerClass);
-		$this->assertArrayHasKey('mail', $profile->properties);
-		$this->assertEquals(array('container' => 'Acme\Containers\AnotherContainer', 'service' => 'mail', 'setter' => 'setMail'), $profile->properties['mail']);
+		$this->assertEquals(array('container' => 'Acme\Containers\TestContainer', 'service' => 'mail', 'reflection' => new \ReflectionProperty('Acme\Components\TestComponentG', 'mail')), $profile->properties['mail']);
 	}
 }

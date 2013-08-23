@@ -6,13 +6,18 @@ use Acme\Services\MailService;
 use Acme\Components\TestComponentD;
 use Acme\Components\TestComponentF;
 use Acme\Components\TestComponentG;
-use Acme\Components\TestComponentI;
-use Acme\Components\TestComponentJ;
 use Acme\Services\HTTPService;
+use Acme\Components\TestComponentH;
+use Acme\Containers\TestContainer;
 
+/**
+ * 
+ * @author emaphp
+ * @group injector
+ */
 class InjectorCreateTest extends \PHPUnit_Framework_TestCase {
 	public function testComponentB() {
-		$b = Injector::createWith(null, 'Acme\Components\TestComponentB');
+		$b = Injector::createFrom(null, 'Acme\Components\TestComponentB');
 		$this->assertTrue($b instanceof TestComponentB);
 		$this->assertObjectHasAttribute('mail', $b);
 		$this->assertTrue($b->mail instanceof MailService);
@@ -26,7 +31,7 @@ class InjectorCreateTest extends \PHPUnit_Framework_TestCase {
 	}
 	
 	public function testComponentC() {
-		$c = Injector::createWith(null, 'Acme\Components\TestComponentC', 'c_object');
+		$c = Injector::createFrom(null, 'Acme\Components\TestComponentC', 'c_object');
 		$this->assertTrue($c instanceof TestComponentC);
 		$this->assertObjectHasAttribute('mail', $c);
 		$this->assertTrue($c->mail instanceof MailService);
@@ -44,37 +49,86 @@ class InjectorCreateTest extends \PHPUnit_Framework_TestCase {
 	}
 	
 	public function testComponentD() {
-		$d = Injector::createWith(null, 'Acme\Components\TestComponentD');
+		$d = Injector::createFrom(null, 'Acme\Components\TestComponentD');
 		$this->assertTrue($d instanceof TestComponentD);
 		$this->assertObjectHasAttribute('mail', $d);
 		$this->assertTrue($d->mail instanceof MailService);
 	}
 	
 	public function testComponentF() {
-		$f = Injector::createWith(null, 'Acme\Components\TestComponentF');
+		$f = Injector::createFrom(null, 'Acme\Components\TestComponentF');
 		$this->assertTrue($f instanceof TestComponentF);
 		$this->assertObjectHasAttribute('mail', $f);
 		$this->assertTrue($f->mail instanceof MailService);
 	}
 	
 	public function testComponentG() {
-		$g = Injector::createWith(null, 'Acme\Components\TestComponentG');
+		$g = Injector::createFrom(null, 'Acme\Components\TestComponentG');
 		$this->assertTrue($g instanceof TestComponentG);
 		$this->assertObjectHasAttribute('mail', $g);
 		$this->assertTrue($g->mail instanceof MailService);
 	}
 	
-	public function testComponentI() {
-		$i = Injector::createWith(null, 'Acme\Components\TestComponentI');
-		$this->assertTrue($i instanceof TestComponentI);
-		$this->assertObjectHasAttribute('mail', $i);
-		$this->assertTrue($i->getMail() instanceof MailService);
+	public function testComponentH() {
+		$h = Injector::createFrom(null, 'Acme\Components\TestComponentH', 'h_object');
+		$this->assertTrue($h instanceof TestComponentH);
+		$this->assertObjectHasAttribute('mail', $h);
+		$this->assertTrue($h->mail instanceof MailService);
+		$this->assertObjectHasAttribute('name', $h);
+		$this->assertEquals('h_object', $h->name);
+		$this->assertObjectHasAttribute('id', $h);
+		$this->assertEquals(1, $h->id);
+	}
+	
+	public function testComponentH2() {
+		$h = Injector::createFrom(null, 'Acme\Components\TestComponentH', 'h_object', 2);
+		$this->assertTrue($h instanceof TestComponentH);
+		$this->assertObjectHasAttribute('mail', $h);
+		$this->assertTrue($h->mail instanceof MailService);
+		$this->assertObjectHasAttribute('name', $h);
+		$this->assertEquals('h_object', $h->name);
+		$this->assertObjectHasAttribute('id', $h);
+		$this->assertEquals(2, $h->id);
 	}
 	
 	public function testComponentJ() {
-		$j = Injector::createWith(null, 'Acme\Components\TestComponentJ');
-		$this->assertTrue($j instanceof TestComponentJ);
-		$this->assertObjectHasAttribute('http', $j);
-		$this->assertTrue($j->getHTTP() instanceof HTTPService);
+		$j = Injector::create('Acme\Components\TestComponentJ', 'j_object');
+		$this->assertTrue($j instanceof Acme\Components\TestComponentJ);
+		$this->assertEquals('j_object', $j->name);
+		$this->assertEquals(1, $j->id);
+		$this->assertTrue($j->getMail() instanceof MailService);
+		$this->assertTrue($j->getHttp() instanceof HTTPService);
 	}
+	
+	public function testComponentJ2() {
+		$j = Injector::create('Acme\Components\TestComponentJ', 'j_object', 5);
+		$this->assertTrue($j instanceof Acme\Components\TestComponentJ);
+		$this->assertEquals('j_object', $j->name);
+		$this->assertEquals(5, $j->id);
+		$this->assertTrue($j->getMail() instanceof MailService);
+		$this->assertTrue($j->getHttp() instanceof HTTPService);
+	}
+	
+	/**
+	 * 'With' tests
+	 */
+	public function testComponentA() {
+		$a = Injector::createFrom(new TestContainer(), 'Acme\Components\TestComponentA');
+		$this->assertTrue($a instanceof Acme\Components\TestComponentA);
+		$this->assertTrue($a->mail instanceof MailService);
+	}
+	
+	public function testComponentE() {
+		$e = Injector::createFrom('Acme\Containers\BigContainer', 'Acme\Components\TestComponentE');
+		$this->assertTrue($e instanceof Acme\Components\TestComponentE);
+		$this->assertTrue($e->mail instanceof MailService);
+	}
+	
+	public function testComponentI() {
+		$i = Injector::createFrom('Acme\Containers\TestContainer', 'Acme\Components\TestComponentI');
+		$this->assertTrue($i instanceof Acme\Components\TestComponentI);
+		$this->assertTrue($i->getMail() instanceof MailService);
+		$this->assertNull($i->getHttp());
+	}
+	
 }

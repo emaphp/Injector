@@ -2,19 +2,22 @@
 namespace Acme\Components;
 
 use Acme\Services\MailService;
+use Acme\Services\HTTPService;
 
 /**
- * 
- * @author emaphp
+ * @container Acme\Containers\TestContainer
  */
 class TestComponentH {
 	/**
-	 * @inject setMail(mail)
-	 * @var unknown
+	 * 
+	 * @param MailService $service
+	 * @inject $service mail
+	 * @inject $http Acme\Containers\AnotherContainer::http
 	 */
-	protected $mail;
-	
-	public function setMail($mail) {
-		$this->mail = $mail;
+	public function __construct(MailService $service, HTTPService $http, $name, $id = 1) {
+		$this->mail = $service;
+		$this->http = $http;
+		$this->name = $name;
+		$this->id = $id;
 	}
 }

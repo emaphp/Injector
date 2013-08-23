@@ -1,25 +1,26 @@
 <?php
 namespace Acme\Components;
 
-use Acme\Services\MailService;
-
 /**
- * 
+ * @container Acme\Containers\BigContainer
  * @author emaphp
- * @container Acme\Containers\TestContainer
  */
 class TestComponentI {
 	/**
-	 * @inject setMail(mail)
-	 * @var unknown
+	 * @inject mail
 	 */
-	protected $mail;
+	private $mail;
 	
-	public function setMail($mail) {
-		$this->mail = $mail;
-	}
+	/**
+	 * @inject http
+	 */
+	protected $http;
 	
 	public function getMail() {
 		return $this->mail;
+	}
+	
+	public function getHttp() {
+		return $this->http;
 	}
 }
