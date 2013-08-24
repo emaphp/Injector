@@ -21,10 +21,10 @@ class ClassProfile {
 	public $className;
 	
 	/**
-	 * Class container
-	 * @var mixed
+	 * Class default container
+	 * @var string
 	 */
-	public $container;
+	public $defaultContainer;
 	
 	/**
 	 * Container class
@@ -52,31 +52,10 @@ class ClassProfile {
 	 */
 	public function __construct($className, $container = null) {
 		$this->className = $className;
-		$this->container = $container;
-		
-		//check for default container
-		if (is_null($container)) {
-			$this->containerClass = $container;
-		}
-		elseif (is_object($container)) {
-			//check container type
-			if (!($container instanceof \Pimple)) {
-				throw new \RuntimeException("Container is not a valid instance of Pimple");
-			}
-			
-			$this->containerClass = get_class($container);
-		}
-		elseif (is_string($container)) {
-			$this->containerClass = $container;
-		}
-		else {
-			throw new \RuntimeException("Container must be defined as an string or object");	
-		}
-		
-		$this->build();
+		$this->build($container);
 	}
 	
-	protected function build() {
+	protected function build($requestedContainer) {
 		$this->class = new \ReflectionClass($this->className);
 		
 		/**
@@ -88,9 +67,7 @@ class ClassProfile {
 		//check if class has doc comments (@container {container_class})
 		if ($doc !== false && preg_match('/@container[ ]+([\w|\\\\]+)/', $doc, $matches)) {
 			//set only if profile does not provide a default container
-			if (is_null($this->container)) {
-				$this->container = $this->containerClass = $matches[1];
-			}
+			$this->defaultContainer = $matches[1];
 		}
 		
 		/**
@@ -110,11 +87,11 @@ class ClassProfile {
 					//check container
 					if (empty($matches[1])) {
 						//set default container, if any
-						if (is_null($this->container)) {
+						if (is_null($requestedContainer) && is_null($this->defaultContainer)) {
 							throw new \RuntimeException("No default container specified for class '{$this->className}'");
 						}
 							
-						$container = $this->containerClass;
+						$container = true;
 					}
 					else {
 						$container = substr($matches[1], 0, -2);
@@ -145,11 +122,11 @@ class ClassProfile {
 					//check container
 					if (empty($matches[2][$i])) {
 						//set default container, if any
-						if (is_null($this->container)) {
+						if (is_null($requestedContainer) && is_null($this->defaultContainer)) {
 							throw new \RuntimeException("No default container specified for class '{$this->className}'");
 						}
 							
-						$container = $this->containerClass;
+						$container = true;
 					}
 					else {
 						$container = substr($matches[2][$i], 0, -2);

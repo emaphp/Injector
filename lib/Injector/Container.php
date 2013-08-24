@@ -63,7 +63,7 @@ class Container extends \Pimple implements \Iterator {
 		}
 		
 		//create class profile
-		$profile = new ClassProfile($class, $cclass);
+		$profile = Profiler::profile($class, $cclass);
 		$params = array();//constructor params
 		
 		if (!is_null($profile->constructor)) {
@@ -148,11 +148,12 @@ class Container extends \Pimple implements \Iterator {
 		}
 
 		//build class profile
-		$profile = new ClassProfile(get_class($instance), $cclass);
+		$profile = Profiler::profile(get_class($instance), $cclass);
 		$keys = $this->keys();
 		
 		if (empty($properties)) {
 			foreach ($profile->properties as $name => $property) {
+				
 				if ($property['container'] != $cclass) {
 					throw new \RuntimeException("Class '{$profile->className}' depends on {$property['container']}::{$property['service']}. Use Injector::create instead.");
 				}

@@ -61,11 +61,11 @@ final class Injector {
 		$class = array_shift($args);
 
 		//build class profile
-		$profile = new ClassProfile($class, $container);
+		$profile = Profiler::profile($class, $container);
 		
 		//store default container
-		if (is_object($profile->container)) {
-			self::container($profile->container);
+		if (is_object($container)) {
+			self::container($container);
 		}
 		
 		if (!is_null($profile->constructor)) {
@@ -130,7 +130,7 @@ final class Injector {
 		array_shift($properties);
 		
 		//build class profile
-		$profile = new ClassProfile(get_class($instance), $container);
+		$profile = Profiler::profile(get_class($instance), $container);
 		
 		if (empty($properties)) {
 			foreach ($profile->properties as $name => $property) {

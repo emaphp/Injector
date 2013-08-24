@@ -18,6 +18,7 @@ use Acme\Containers\AnotherContainer;
 use Acme\Containers\ShareContainer;
 use Acme\Services\SharedService;
 use Acme\Components\TestComponentK;
+use Acme\Components\TestComponentZ;
 
 /**
  * 
@@ -25,6 +26,10 @@ use Acme\Components\TestComponentK;
  * @group container
  */
 class ContainerTest extends \PHPUnit_Framework_TestCase {
+	/*
+	 * Interface tests
+	 */
+	
 	public function testIterator() {
 		$container = new Container();
 		$container['mail'] = function ($c) {
@@ -39,6 +44,10 @@ class ContainerTest extends \PHPUnit_Framework_TestCase {
 			$this->assertTrue(in_array($name, array('mail', 'http')));
 		}
 	}
+	
+	/*
+	 * Creation tests
+	 */
 	
 	public function testCreationA() {
 		$container = new TestContainer();
@@ -118,6 +127,14 @@ class ContainerTest extends \PHPUnit_Framework_TestCase {
 		$this->assertTrue($j->getHttp() instanceof HTTPService);
 	}
 	
+	public function testCreationZ() {
+		$c1 = new BigContainer();
+		$z = $c1->create('Acme\Components\TestComponentZ');
+		$this->assertTrue($z instanceof TestComponentZ);
+		$this->assertTrue($z->mail instanceof MailService);
+		$this->assertTrue($z->getHTTP() instanceof HTTPService);
+	}
+	
 	/**
 	 * @expectedException \RuntimeException
 	 */
@@ -135,6 +152,10 @@ class ContainerTest extends \PHPUnit_Framework_TestCase {
 		$this->assertObjectHasAttribute('http', $s);
 		$this->assertTrue($s->http instanceof HTTPService);
 	}
+	
+	/*
+	 * Injection tests
+	 */
 	
 	public function testInjectionE() {
 		$container = new TestContainer();
@@ -158,6 +179,13 @@ class ContainerTest extends \PHPUnit_Framework_TestCase {
 		$c1->inject($i, 'http');
 		$this->assertNull($i->getMail());
 		$this->assertTrue($i->getHttp() instanceof HTTPService);
+	}
+	
+	public function testInjectionZ() {
+		$c1 = new BigContainer();
+		$z = new TestComponentZ(new MailService());
+		$c1->inject($z);
+		$this->assertTrue($z->getHTTP() instanceof HTTPService);
 	}
 	
 	public function testCombinedInjection() {
