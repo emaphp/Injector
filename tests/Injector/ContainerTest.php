@@ -19,6 +19,7 @@ use Acme\Containers\ShareContainer;
 use Acme\Services\SharedService;
 use Acme\Components\TestComponentK;
 use Acme\Components\TestComponentZ;
+use Acme\Containers\SubTestContainer;
 
 /**
  * 
@@ -238,5 +239,20 @@ class ContainerTest extends \PHPUnit_Framework_TestCase {
 		$this->assertTrue($b->shared instanceof SharedService);
 		$a->shared->id = 'second!';
 		$this->assertEquals('second!', $b->shared->id);
+	}
+	
+	public function testSubContainer() {
+		$c = new SubTestContainer();
+		$g = $c->create('Acme\Components\TestComponentG');
+		$this->assertTrue($g instanceof TestComponentG);
+		$this->assertTrue($g->mail instanceof MailService);
+	}
+	
+	public function testSubContainer2() {
+		$c = new SubTestContainer();
+		$g = new TestComponentG();
+		$c->inject($g);
+		$this->assertTrue($g instanceof TestComponentG);
+		$this->assertTrue($g->mail instanceof MailService);
 	}
 }

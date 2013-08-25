@@ -1,7 +1,7 @@
 <?php
 namespace Injector;
 
-final class Injector {
+class Injector {
 	/**
 	 * Obtains/Stores a container
 	 * @param string|\Pimple $class_or_container
@@ -41,7 +41,7 @@ final class Injector {
 	}
 	
 	/**
-	 * Generates a new instance withouta default container
+	 * Generates a new instance without a default container
 	 * @param string $class
 	 * @return mixed
 	 */
@@ -51,6 +51,13 @@ final class Injector {
 		return call_user_func_array(array('self', 'createFrom'), $args);
 	}
 	
+	/**
+	 * Generates a new instance with a default container
+	 * @param \Pimple|string $container
+	 * @param string $class
+	 * @throws \RuntimeException
+	 * @return object
+	 */
 	public static function createFrom($container, $class, $_ = null) {
 		//new instance parameters
 		$params = array();
@@ -104,6 +111,11 @@ final class Injector {
 		return $instance;
 	}
 	
+	/**
+	 * Injects a list of services into an object
+	 * @param $object $instance
+	 * @return mixed
+	 */
 	public static function inject(&$instance, $_ = null) {
 		$args = func_get_args();
 		array_unshift($args, null);
@@ -111,7 +123,7 @@ final class Injector {
 	}
 	
 	/**
-	 * Injects a list of services into an object
+	 * Injects a list of services from a container into an object
 	 * @param object $instance
 	 * @throws InvalidArgumentException
 	 */

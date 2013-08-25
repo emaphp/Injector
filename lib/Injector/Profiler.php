@@ -3,13 +3,17 @@ namespace Injector;
 
 use Injector\ClassProfile;
 
-final class Profiler {
+class Profiler {
+	/**
+	 * Class profiles list
+	 * @var array
+	 */
 	public static $profiles = array();
 	
 	/**
 	 * Obtains a class profile for the given container
 	 * @param string $class
-	 * @param mixed $container
+	 * @param \Pimple|string|NULL $container
 	 * @throws \RuntimeException
 	 * @return ClassProfile
 	 */
@@ -36,7 +40,7 @@ final class Profiler {
 	}
 	
 	/**
-	 * Adapts a 
+	 * Adapts a class profile to a container
 	 * @param ClassProfile $profile
 	 * @param NULL|string $container
 	 * @return ClassProfile

@@ -55,6 +55,11 @@ class ClassProfile {
 		$this->build($container);
 	}
 	
+	/**
+	 * Builds a profile class
+	 * @param string $requestedContainer
+	 * @throws \RuntimeException
+	 */
 	protected function build($requestedContainer) {
 		$this->class = new \ReflectionClass($this->className);
 		

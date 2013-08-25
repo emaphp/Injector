@@ -51,6 +51,7 @@ class Container extends \Pimple implements \Iterator {
 		
 		//container class
 		$cclass = get_class($this);
+		$rclass = new \ReflectionClass($cclass);
 		
 		//when stdClass do a simple injection
 		if (preg_match('/^(\\\\)?stdClass$/', $class)) {
@@ -77,7 +78,7 @@ class Container extends \Pimple implements \Iterator {
 					$paramData = $profile->constructorParams[$param->getName()];
 		
 					//check container class
-					if ($paramData['container'] != $cclass) {
+					if ($paramData['container'] != $cclass && !$rclass->isSubclassOf($paramData['container'])) {
 						throw new \RuntimeException("Class '{$profile->className}' depends on {$paramData['container']}::{$paramData['service']}. Use Injector::create instead.");
 					}
 		
@@ -126,6 +127,7 @@ class Container extends \Pimple implements \Iterator {
 		
 		//container class
 		$cclass = get_class($this);
+		$rclass = new \ReflectionClass($cclass);
 		
 		if ($instance instanceof \stdClass) {
 			$services = $this->keys();
@@ -154,7 +156,7 @@ class Container extends \Pimple implements \Iterator {
 		if (empty($properties)) {
 			foreach ($profile->properties as $name => $property) {
 				
-				if ($property['container'] != $cclass) {
+				if ($property['container'] != $cclass && !$rclass->isSubclassOf($property['container'])) {
 					throw new \RuntimeException("Class '{$profile->className}' depends on {$property['container']}::{$property['service']}. Use Injector::create instead.");
 				}
 			
@@ -181,7 +183,7 @@ class Container extends \Pimple implements \Iterator {
 				
 				$propertyData = $profile->properties[$property];
 				
-				if ($propertyData['container'] != $cclass) {
+				if ($propertyData['container'] != $cclass && !$rclass->isSubclassOf($propertyData['container'])) {
 					throw new \RuntimeException("Class '{$profile->className}' depends on {$propertyData['container']}::{$propertyData['service']}. Use Injector::create instead.");
 				}
 			
