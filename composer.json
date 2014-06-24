@@ -1,20 +1,21 @@
 {
-	"name": "injector/injector",
-	"type": "library",
-	"description": "A dependency injection class based on Pimple",
-	"keywords": ["dependency", "injection", "injector", "pimple"],
-	"license": "BSD 2-Clause",
-	"authors": [
-		{
-			"name": "Emmanuel Antico",
-			"email": "emmanuel.antico@gmail.com"
-		}
-	]
-	,
-	"require": {
-		"pimple/pimple": "1.0.*"
-	},
-	"autoload": {
-		"psr-0": {"Injector": "lib/"}
-	}
+    "name": "injector/injector",
+    "type": "library",
+    "description": "A dependency injection class based on Pimple",
+    "keywords": ["dependency", "injection", "injector", "pimple"],
+    "license": "BSD 2-Clause",
+    "authors": [
+        {
+            "name": "Emmanuel Antico",
+            "email": "emmanuel.antico@gmail.com"
+        }
+    ]
+    ,
+    "require": {
+        "pimple/pimple": "v2.0.0",
+        "minime/annotations": "~1.12"
+    },
+    "autoload": {
+        "psr-0": {"Injector": "lib/"}
+    }
 }

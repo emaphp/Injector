@@ -1,7 +1,20 @@
 <?php
 namespace Injector;
 
+use Minime\Annotations\Facade;
+
+/**
+ * Stores a class profile
+ * @author emaphp
+ * @package Injector
+ */
 class ClassProfile {
+	/**
+	 * Default annotation namespace
+	 * @var string
+	 */
+	const NS = 'inject';
+	
 	/**
 	 * Reflection class
 	 * @var \ReflectionClass
@@ -25,13 +38,7 @@ class ClassProfile {
 	 * @var string
 	 */
 	public $defaultContainer;
-	
-	/**
-	 * Container class
-	 * @var string
-	 */
-	public $containerClass;
-	
+		
 	/**
 	 * Constructor injection values
 	 * @var array
@@ -45,106 +52,96 @@ class ClassProfile {
 	public $properties = array();
 	
 	/**
+	 * Reflection properties array
+	 * @var array
+	 */
+	public $reflectionProperties = array();
+	
+	/**
 	 * Creates a new class profile
 	 * @param string $className
-	 * @param string $container
 	 * @throws \RuntimeException
 	 */
-	public function __construct($className, $container = null) {
+	public function __construct($className) {
 		$this->className = $className;
-		$this->build($container);
+		$this->initialize();
 	}
 	
 	/**
-	 * Builds a profile class
-	 * @param string $requestedContainer
+	 * Initializes a class profile instance
 	 * @throws \RuntimeException
 	 */
-	protected function build($requestedContainer) {
+	protected function initialize() {
 		$this->class = new \ReflectionClass($this->className);
 		
-		/**
-		 * PARSE CLASS
-		 */
-		//extract doc comments
-		$doc = $this->class->getDocComment();
+		//parse class annotations
+		$annotations = Facade::getAnnotations($this->class);
+		$values = $annotations->useNamespace(self::NS)->export();
 		
-		//check if class has doc comments (@container {container_class})
-		if ($doc !== false && preg_match('/@container[ ]+([\w|\\\\]+)/', $doc, $matches)) {
-			//set only if profile does not provide a default container
-			$this->defaultContainer = $matches[1];
+		//get default container class (if any)
+		if (array_key_exists('container', $values)) {
+			$this->defaultContainer = is_array($values['container']) ? array_shift($values['container']) : $values['container'];
+			
+			if (!is_string($this->defaultContainer) || empty($this->defaultContainer)) {
+				throw new \RuntimeException(sprintf("Class '%s' must define a valid container class", $this->className));
+			}
 		}
 		
-		/**
-		 * PARSE PROPERTIES
-		 */
+		//parse properties
 		$properties = $this->class->getProperties();
 		
 		foreach ($properties as $property) {
-			//get doc comments
-			$doc = $property->getDocComment();
+			$annotations = Facade::getAnnotations($property);
+			$values = $annotations->useNamespace(self::NS)->export();
 			
-			if ($doc !== false) {
-				//get injected properties (@inject [container_class::]{service_name})
-				if (preg_match('/@inject[ ]+([\w|\\\\]+::)?([\w]+)/', $doc, $matches)) {
-					$service = $matches[2];
-						
-					//check container
-					if (empty($matches[1])) {
-						//set default container, if any
-						if (is_null($requestedContainer) && is_null($this->defaultContainer)) {
-							throw new \RuntimeException("No default container specified for class '{$this->className}'");
-						}
-							
-						$container = true;
-					}
-					else {
-						$container = substr($matches[1], 0, -2);
-					}
-				}
+			if (array_key_exists('service', $values)) {
+				//store service id
+				$propertyName = $property->getName();
+				$this->properties[$propertyName] = is_array($values['service']) ? array_shift($values['service']) : $values['service'];
 				
-				//add property profile
-				$this->properties[$property->getName()] = array('container'  => $container,
-																'service'    => $service,
-																'reflection' => $property);
+				//store ReflectionProperty instance and make it accesible
+				$this->reflectionProperties[$propertyName] = $property;
+				$this->reflectionProperties[$propertyName]->setAccesible(true);
 			}
 		}
 		
-		/**
-		 * PARSE CONSTRUCTOR
-		 */
-		//get constructor, if any
-		if ($this->class->hasMethod('__construct')) {
-			$this->constructor = new \ReflectionMethod($this->className, '__construct');
-			$doc = $this->constructor->getDocComment();
-			
-			//get injected parameters
-			if (preg_match('/@inject/', $doc)) {
-				//@inject {$var} [container_class::]{service_name}
-				$tmatches = preg_match_all('/@inject[ ]+\$([\w]+)[ ]+([\w|\\\\]+::)?([\w]+)/', $doc, $matches);
+		//parse constructor
+		$this->constructor = $this->class->getConstructor();
+		$annotations = Facade::getAnnotations($this->constructor);
+		$values = $annotations->useNamespace(self::NS)->export();
+		
+		if (array_key_exists('param', $values)) {
+			if (is_array($values['param'])) {
+				foreach ($values['param'] as $arg) {
+					list($argname, $argid) = $this->parseParameter($arg);
 					
-				for ($i = 0; $i < $tmatches; $i++) {
-					//check container
-					if (empty($matches[2][$i])) {
-						//set default container, if any
-						if (is_null($requestedContainer) && is_null($this->defaultContainer)) {
-							throw new \RuntimeException("No default container specified for class '{$this->className}'");
-						}
-							
-						$container = true;
+					if ($argname) {
+						$this->constructorParams[$argname] = $argid;
 					}
-					else {
-						$container = substr($matches[2][$i], 0, -2);
-					}
-			
-					//add parameter profile
-					$this->constructorParams[$matches[1][$i]] = array('container' => $container,
-																	  'service' => $matches[3][$i]);
+				}
+			}
+			else {
+				list($argname, $argid) = $this->parseParameter($values['param']);
+				
+				if ($argname) {
+					$this->constructorParams[$argname] = $argid;
 				}
 			}
 		}
-		else {
-			$this->constructor = null;
+	}
+	
+	/**
+	 * Parses an injected argument expression
+	 * @param string $str
+	 * @return array
+	 */
+	protected function parseParameter($str) {
+		$regex = '/(?:\s*)?\$?(\w+)(?:\s+)(\w+)(?:\s*)?$/';
+		
+		if (preg_match($regex, $str, $matches)) {
+			return [$matches[1], $matches[2]];
 		}
-	}	
+		
+		throw new \RuntimeException(sprintf("Invalid expression found in %s __construct method annotation", $this->className));
+	}
 }

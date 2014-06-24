@@ -1,14 +1,213 @@
 <?php
 namespace Injector;
 
+/**
+ * Dependency injection class
+ * @author emaphp
+ * @package Injector
+ */
 class Injector {
 	/**
-	 * Obtains/Stores a container
-	 * @param string|\Pimple $class_or_container
-	 * @throws \RuntimeException
-	 * @return \Pimple|boolean
+	 * Default container class name
+	 * @var string
 	 */
-	public static function container($class_or_container) {
+	protected static $defaultContainer = null;
+	
+	/**
+	 * Set default container class
+	 * @param string $container
+	 */
+	public static function setDefaultContainer($container) {
+		self::$defaultContainer = $container;
+	}
+	
+	/**
+	 * Obtains the default container class
+	 * @return string
+	 */
+	public static function getDefaultContiner() {
+		return self::$defaultContainer;
+	}
+	
+	/**
+	 * Creates a new instance of $classname from a default container
+	 * @param string $classname
+	 * @throws \RuntimeException
+	 * @throws \InvalidArgumentException
+	 * @return object
+	 */
+	public static function create($classname, $_ = null) {
+		if (!is_string($classname) || empty($classname)) {
+			throw new \InvalidArgumentException("Argument is not a valid class name");
+		}
+		
+		//obtain default container for this class
+		$profile = Profiler::getClassProfile($classname);
+		$containerClass = is_null($profile->defaultContainer) ? self::$defaultContainer : $profile->defaultContainer;
+		
+		if (empty($containerClass)) {
+			throw new \RuntimeException("No default container has been set for class $classname");
+		}
+		
+		//create container and inject dependencies
+		$container = self::getContainer($containerClass);
+		
+		if ($container instanceof Container) {
+			return call_user_func_array([$container, 'create'], func_get_args());
+		}
+		elseif ($container instanceof \Pimple) {
+			$instance = $profile->class->newInstance();
+			self::inject($instance, $container);
+			return $instance;
+		}
+		
+		throw new \InvalidArgumentException("$containerClass is not a valid container class");
+	}
+	
+	public static function inject(&$instance, $container, $filter, $override) {
+		if (!is_object($instance)) {
+			throw new \InvalidArgumentException("Argument is not a valid object");
+		}
+		
+		if (!is_object($container)) {
+			throw new \InvalidArgumentException("Container is not a valid object");
+		}
+		elseif (!($container instanceof \Pimple)) {
+			throw new \InvalidArgumentException("Container is not a valid container");
+		}
+		
+		//check if objects is a stdClass instance
+		if ($instance instanceof \stdClass) {
+			$services = $container->keys();
+				
+			if (empty($filter)) {
+				//inject all
+				for ($i = 0, $n = count($services); $i < $n; $i++) {
+					if (is_array($override) && array_key_exists($services[$i], $override)) {
+						continue;
+					}
+						
+					$instance->$services[$i] = $container->offsetGet($services[$i]);
+				}
+			}
+			else {
+				foreach ($filter as $service) {
+					//check if service exists
+					if (!in_array($service, $services)) {
+						throw new \RuntimeException(sprintf("Service '$service' does not exists in container class '%s'", get_class($container)));
+					}
+						
+					if (is_array($override) && array_key_exists($service, $override)) {
+						continue;
+					}
+						
+					$instance->$service = $container->offsetGet($service);
+				}
+			}
+				
+			//override values
+			if (is_array($override) && !empty($override)) {
+				foreach ($override as $service => $value) {
+					if (is_int($service)) {
+						continue;
+					}
+						
+					$instance->$service = $value;
+				}
+			}
+				
+			return;
+		}
+		
+		//build class profile
+		$classname = get_class($instance);
+		$profile = Profiler::getClassProfile($classname);
+		$services = $container->keys();
+		
+		if (empty($filter)) {
+			foreach ($profile->reflectionProperties as $name => $property) {
+				if (is_array($override) && array_key_exists($services[$i], $override)) {
+					continue;
+				}
+		
+				$serviceId = $profile->properties[$name];
+		
+				//check if service is available
+				if (!$container->offsetExists($serviceId)) {
+					throw new \RuntimeException("Property '$name' in class $classname is associated to a unknown service '$serviceId'");
+				}
+		
+				//set property value
+				if ($property->isStatic()) {
+					$property->setValue(null, $container->offsetGet($serviceId));
+				}
+				else {
+					$property->setValue($instance, $container->offsetGet($serviceId));
+				}
+			}
+		}
+		else {
+			foreach ($filter as $property) {
+				if (is_array($override) && array_key_exists($property, $override)) {
+					continue;
+				}
+			
+				if (!array_key_exists($property, $profile->properties)) {
+					throw new \RuntimeException("Property '$property' does not appear to be an injectable property");
+				}
+			
+				$serviceId = $profile->properties[$property];
+			
+				if (!$container->offsetExists($serviceId)) {
+					throw new \RuntimeException("Property '$name' in class $classname is associated to a unknown service '$serviceId'");
+				}
+			
+				//set property value
+				if ($profile->reflectionProperties[$property]->isStatic()) {
+					$profile->reflectionProperties[$property]->setValue(null, $container->offsetGet($serviceId));
+				}
+				else {
+					$profile->reflectionProperties[$property]->setValue($instance, $container->offsetGet($serviceId));
+				}
+			}
+		}
+		
+		//override properties
+		if (is_array($override) && !empty($override)) {
+			foreach ($override as $service => $value) {
+				if (array_key_exists($service, $profile->reflectionProperties)) {
+					if ($profile->reflectionProperties[$service]->isStatic()) {
+						$profile->reflectionProperties[$service]->setValue(null, $value);
+					}
+					else {
+						$profile->reflectionProperties[$service]->setValue($instance, $value);
+					}
+				}
+				elseif ($profile->class->hasProperty($service)) {
+					$property = $profile->class->getProperty($service);
+					$property->setAccessible(true);
+						
+					if ($property->isStatic()) {
+						$property->setValue(null, $value);
+					}
+					else {
+						$property->setValue($instance, $value);
+					}
+				}
+				else {
+					throw new \RuntimeException("Cannot override non existant property '$service'");
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Obtains/Stores a container
+	 * @param string $container_class
+	 * @throws \InvalidArgumentException
+	 * @return \Pimple
+	 */
+	public static function getContainer($container_class) {
 		static $ccontainer;
 
 		//initialize main container
@@ -16,176 +215,16 @@ class Injector {
 			$ccontainer = new \Pimple();
 		}
 		
-		//check if parameter must be stored
-		if ($class_or_container instanceof \Pimple) {
-			$class = get_class($class_or_container);
+		if (!$ccontainer->offsetExists($container_class)) {
+			if (!class_exists($container_class, true)) {
+				throw new \InvalidArgumentException("Class $container_class could not be found");
+			}
 			
-			$ccontainer[$class] = $ccontainer->share(function ($c) use ($class_or_container) {
-				return $class_or_container;
-			});
-			
-			return true;
-		}
-		//create container instance if not available
-		elseif (is_string($class_or_container)) {
-			if (!array_key_exists($class_or_container, $ccontainer)) {
-				$ccontainer[$class_or_container] = $ccontainer->share(function ($c) use ($class_or_container) {
-					return new $class_or_container;
-				});
-			}
-
-			return $ccontainer[$class_or_container];
+			$ccontainer[$container_class] = function ($c) {
+				return new $container_class;
+			};
 		}
 		
-		throw new \RuntimeException("Unsupported container type");
-	}
-	
-	/**
-	 * Generates a new instance without a default container
-	 * @param string $class
-	 * @return mixed
-	 */
-	public static function create($class, $_ = null) {
-		$args = func_get_args();
-		array_unshift($args, null);
-		return call_user_func_array(array('self', 'createFrom'), $args);
-	}
-	
-	/**
-	 * Generates a new instance with a default container
-	 * @param \Pimple|string $container
-	 * @param string $class
-	 * @throws \RuntimeException
-	 * @return object
-	 */
-	public static function createFrom($container, $class, $_ = null) {
-		//new instance parameters
-		$params = array();
-		
-		//get method parameters
-		$args = func_get_args();
-		$container = array_shift($args);
-		$class = array_shift($args);
-
-		//build class profile
-		$profile = Profiler::profile($class, $container);
-		
-		//store default container
-		if (is_object($container)) {
-			self::container($container);
-		}
-		
-		if (!is_null($profile->constructor)) {
-			//build constructor parameter list
-			$parameters = $profile->constructor->getParameters();
-			
-			foreach ($parameters as $param) {
-				if (array_key_exists($param->getName(), $profile->constructorParams)) {
-					//get parameter injection data
-					$paramData = $profile->constructorParams[$param->getName()];
-					//add service to instance parameters
-					$params[] = self::container($paramData['container'])->offsetGet($paramData['service']);
-				}
-				//check for additional parameters
-				elseif (!empty($args)) {
-					$params[] = array_shift($args);
-				}
-				else {
-					//obtain default value, if any
-					if ($param->isOptional()) {
-						$params[] = $param->getDefaultValue();
-					}
-					else {
-						throw new \RuntimeException("Not enough parameters provided for '$class' constructor");
-					}					
-				}
-			}
-		}
-		
-		//create instance
-		$instance = $profile->class->newInstanceArgs($params);
-		
-		//inject properties
-		self::injectFrom($container, $instance);
-		
-		return $instance;
-	}
-	
-	/**
-	 * Injects a list of services into an object
-	 * @param $object $instance
-	 * @return mixed
-	 */
-	public static function inject(&$instance, $_ = null) {
-		$args = func_get_args();
-		array_unshift($args, null);
-		return call_user_func_array(array('self', 'injectFrom'), $args);
-	}
-	
-	/**
-	 * Injects a list of services from a container into an object
-	 * @param object $instance
-	 * @throws InvalidArgumentException
-	 */
-	public static function injectFrom($container, &$instance, $_ = null) {
-		if (!is_object($instance)) {
-			throw new \InvalidArgumentException("Argument is not a valid object");
-		}
-
-		if ($instance instanceof \stdClass) {
-			throw new \InvalidArgumentException("Cannot inject properties to stdClass instance from Injector class.");
-		}
-		
-		//get properties
-		$properties = func_get_args();
-		$container = array_shift($properties);
-		array_shift($properties);
-		
-		//build class profile
-		$profile = Profiler::profile(get_class($instance), $container);
-		
-		if (empty($properties)) {
-			foreach ($profile->properties as $name => $property) {
-				if (!self::container($property['container'])->offsetExists($property['service'])) {
-					continue;
-				}
-				
-				//make property accesible
-				$property['reflection']->setAccessible(true);
-		
-				//set property value
-				if ($property['reflection']->isStatic()) {
-					$property['reflection']->setValue(null, self::container($property['container'])->offsetGet($property['service']));
-				}
-				else {
-					$property['reflection']->setValue($instance, self::container($property['container'])->offsetGet($property['service']));
-				}
-			}
-		}
-		else {
-			foreach ($properties as $property) {
-				if (!array_key_exists($property, $profile->properties)) {
-					throw new \RuntimeException("Property '$property' does not appear to be an injectable property");
-				}
-		
-				//get property data
-				$propertyData = $profile->properties[$property];
-		
-				if (!self::container($property['container'])->offsetExists($propertyData['service'])) {
-					continue;
-				}
-				
-				//make property accesible
-				$propertyData['reflection']->setAccessible(true);
-		
-				//set property value
-				if ($propertyData['reflection']->isStatic()) {
-					$propertyData['reflection']->setValue(null, self::container($propertyData['container'])->offsetGet([$propertyData['service']]));
-				}
-				else {
-					$propertyData['reflection']->setValue($instance, self::container($propertyData['container'])->offsetGet([$propertyData['service']]));
-				}
-			}
-		}
+		return $ccontainer[$container_class];
 	}
 }
