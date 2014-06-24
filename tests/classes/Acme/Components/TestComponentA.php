@@ -4,12 +4,10 @@ namespace Acme\Components;
 use Acme\Services\MailService;
 
 class TestComponentA {
-	public $mail;
+	private $mail;
 	
 	/**
-	 * 
-	 * @param MailService $service
-	 * @inject $service mail
+	 * @inject.param $service mail
 	 */
 	public function __construct(MailService $service) {
 		$this->mail = $service;

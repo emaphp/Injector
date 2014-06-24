@@ -3,8 +3,7 @@ namespace Acme\Components;
 
 class TestComponentE {
 	/**
-	 * @inject mail
-	 * @var unknown
+	 * @inject.service mail
 	 */
 	public $mail;
 }

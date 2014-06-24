@@ -101,30 +101,33 @@ class ClassProfile {
 				
 				//store ReflectionProperty instance and make it accesible
 				$this->reflectionProperties[$propertyName] = $property;
-				$this->reflectionProperties[$propertyName]->setAccesible(true);
+				$this->reflectionProperties[$propertyName]->setAccessible(true);
 			}
 		}
 		
 		//parse constructor
 		$this->constructor = $this->class->getConstructor();
-		$annotations = Facade::getAnnotations($this->constructor);
-		$values = $annotations->useNamespace(self::NS)->export();
 		
-		if (array_key_exists('param', $values)) {
-			if (is_array($values['param'])) {
-				foreach ($values['param'] as $arg) {
-					list($argname, $argid) = $this->parseParameter($arg);
-					
+		if (!is_null($this->constructor)) {
+			$annotations = Facade::getAnnotations($this->constructor);
+			$values = $annotations->useNamespace(self::NS)->export();
+			
+			if (array_key_exists('param', $values)) {
+				if (is_array($values['param'])) {
+					foreach ($values['param'] as $arg) {
+						list($argname, $argid) = $this->parseParameter($arg);
+							
+						if ($argname) {
+							$this->constructorParams[$argname] = $argid;
+						}
+					}
+				}
+				else {
+					list($argname, $argid) = $this->parseParameter($values['param']);
+			
 					if ($argname) {
 						$this->constructorParams[$argname] = $argid;
 					}
-				}
-			}
-			else {
-				list($argname, $argid) = $this->parseParameter($values['param']);
-				
-				if ($argname) {
-					$this->constructorParams[$argname] = $argid;
 				}
 			}
 		}

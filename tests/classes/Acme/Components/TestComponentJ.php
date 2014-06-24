@@ -2,9 +2,9 @@
 namespace Acme\Components;
 
 use Acme\Services\HTTPService;
+
 /**
- * @container Acme\Containers\BigContainer
- * @author emaphp
+ * @inject.container Acme\Containers\BigContainer
  */
 class TestComponentJ {
 	public $name;
@@ -12,22 +12,18 @@ class TestComponentJ {
 	public $id;
 	
 	/**
-	 * @inject mail
+	 * @inject.service mail
 	 */
 	private $mail;
 	
 	protected $http;
 	
 	/**
-	 * 
-	 * @param HTTPService $http
-	 * @param unknown $name
-	 * @param number $id
-	 * @inject $http http
+	 * @inject.service $http http
 	 */
-	public function __construct(HTTPService $http, $name, $id = 1) {
-		$this->http = $http;
+	public function __construct($name, HTTPService $http, $id = 1) {
 		$this->name = $name;
+		$this->http = $http;
 		$this->id = $id;
 	}
 	

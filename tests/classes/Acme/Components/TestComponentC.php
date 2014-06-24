@@ -5,18 +5,16 @@ use Acme\Services\MailService;
 use Acme\Services\HTTPService;
 
 /**
- * @container Acme\Containers\TestContainer
+ * @inject.container Acme\Containers\TestContainer
  */
 class TestComponentC {
 	/**
-	 * 
-	 * @param MailService $service
-	 * @inject $service mail
-	 * @inject $http Acme\Containers\AnotherContainer::http
+	 * @inject.param $service mail
+	 * @inject.param $http http
 	 */
-	public function __construct(MailService $service, HTTPService $http, $name) {
+	public function __construct($name, MailService $service, HTTPService $http) {
+		$this->name = $name;
 		$this->mail = $service;
 		$this->http = $http;
-		$this->name = $name;
 	}
 }

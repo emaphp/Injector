@@ -2,17 +2,16 @@
 namespace Acme\Components;
 
 /**
- * @container Acme\Containers\BigContainer
- * @author emaphp
+ * @inject.container Acme\Containers\BigContainer
  */
 class TestComponentI {
 	/**
-	 * @inject mail
+	 * @inject.service mail
 	 */
 	private $mail;
 	
 	/**
-	 * @inject http
+	 * @inject.service http
 	 */
 	protected $http;
 	

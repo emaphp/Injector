@@ -1,12 +1,9 @@
 <?php
 namespace Acme\Components;
 
-
 class TestComponentZ extends TestComponentA {
 	/**
-	 * 
-	 * @var unknown
-	 * @inject http
+	 * @inject.service http
 	 */
 	private $http;
 	
