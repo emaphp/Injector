@@ -4,7 +4,7 @@ namespace Acme\Components;
 use Acme\Services\MailService;
 
 class TestComponentA {
-	private $mail;
+	public $mail;
 	
 	/**
 	 * @inject.param $service mail

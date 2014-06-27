@@ -2,7 +2,7 @@
 namespace Acme\Components;
 
 /**
- * @inject.container Acme\Containers\BigContainer
+ * @inject.provider Acme\Providers\AllServiceProvider 
  */
 class TestComponentI {
 	/**

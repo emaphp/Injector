@@ -2,7 +2,8 @@
 namespace Acme\Components;
 
 /**
- * @inject.container Acme\Containers\TestContainer
+ * @inject.strict
+ * @inject.provider Acme\Providers\MailServiceProvider
  */
 class TestComponentF {
 	/**

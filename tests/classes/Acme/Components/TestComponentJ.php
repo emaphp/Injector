@@ -4,7 +4,7 @@ namespace Acme\Components;
 use Acme\Services\HTTPService;
 
 /**
- * @inject.container Acme\Containers\BigContainer
+ * @inject.provider Acme\Providers\AllServiceProvider
  */
 class TestComponentJ {
 	public $name;
@@ -19,7 +19,7 @@ class TestComponentJ {
 	protected $http;
 	
 	/**
-	 * @inject.service $http http
+	 * @inject.param $http http
 	 */
 	public function __construct($name, HTTPService $http, $id = 1) {
 		$this->name = $name;

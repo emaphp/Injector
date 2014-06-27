@@ -29,9 +29,9 @@ class Profiler {
 		}
 		
 		//validate classname
-		if (!class_exists($classname, true)) {
-			throw new \RuntimeException("Class %s could not be found");
-		}
+ 		if (!class_exists($classname, true)) {
+ 			throw new \RuntimeException("Class %s could not be found");
+ 		}
 		
 		//build profile and return
 		self::$profiles[$classname] = new ClassProfile($classname);

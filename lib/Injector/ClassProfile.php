@@ -34,10 +34,10 @@ class ClassProfile {
 	public $className;
 	
 	/**
-	 * Class default container
-	 * @var string
+	 * Service providers
+	 * @var array
 	 */
-	public $defaultContainer;
+	public $providers;
 		
 	/**
 	 * Constructor injection values
@@ -56,6 +56,13 @@ class ClassProfile {
 	 * @var array
 	 */
 	public $reflectionProperties = array();
+	
+	/**
+	 * Indicates if all dependecies must be fullfiled
+	 * When true, a RuntimeException is thrown if a dependency is not declared within the container
+	 * @var boolean
+	 */
+	public $isStrict = false;
 	
 	/**
 	 * Creates a new class profile
@@ -79,12 +86,13 @@ class ClassProfile {
 		$values = $annotations->useNamespace(self::NS)->export();
 		
 		//get default container class (if any)
-		if (array_key_exists('container', $values)) {
-			$this->defaultContainer = is_array($values['container']) ? array_shift($values['container']) : $values['container'];
-			
-			if (!is_string($this->defaultContainer) || empty($this->defaultContainer)) {
-				throw new \RuntimeException(sprintf("Class '%s' must define a valid container class", $this->className));
-			}
+		if (array_key_exists('provider', $values)) {
+			$this->providers = is_array($values['provider']) ? $values['provider'] : [$values['provider']];
+		}
+		
+		//is strict?
+		if (array_key_exists('strict', $values)) {
+			$this->isStrict = is_array($values['strict']) ? array_shift($values['strict']) : (bool) $values['strict'];
 		}
 		
 		//parse properties
@@ -137,6 +145,7 @@ class ClassProfile {
 	 * Parses an injected argument expression
 	 * @param string $str
 	 * @return array
+	 * @throws \RuntimeException
 	 */
 	protected function parseParameter($str) {
 		$regex = '/(?:\s*)?\$?(\w+)(?:\s+)(\w+)(?:\s*)?$/';

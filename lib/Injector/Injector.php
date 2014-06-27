@@ -1,6 +1,9 @@
 <?php
 namespace Injector;
 
+use Pimple\Container;
+use Pimple\ServiceProviderInterface;
+
 /**
  * Dependency injection class
  * @author emaphp
@@ -8,63 +11,141 @@ namespace Injector;
  */
 class Injector {
 	/**
-	 * Default container class name
-	 * @var string
+	 * Providers array
+	 * @var array
 	 */
-	protected static $defaultContainer = null;
+	protected static $providers = array();
 	
 	/**
-	 * Set default container class
-	 * @param string $container
-	 */
-	public static function setDefaultContainer($container) {
-		self::$defaultContainer = $container;
-	}
-	
-	/**
-	 * Obtains the default container class
-	 * @return string
-	 */
-	public static function getDefaultContiner() {
-		return self::$defaultContainer;
-	}
-	
-	/**
-	 * Creates a new instance of $classname from a default container
+	 * Obtains a provider class instance
 	 * @param string $classname
-	 * @throws \RuntimeException
 	 * @throws \InvalidArgumentException
+	 * @return ServiceProviderInterface
+	 */
+	public static function getProvider($classname) {
+		if (array_key_exists($classname, self::$providers)) {
+			return self::$providers[$classname];
+		}
+		
+		$provider = new $classname;
+		
+		if (!($provider instanceof ServiceProviderInterface)) {
+			throw new \InvalidArgumentException("$classname is not a valid ServiceProviderInterface instance");
+		}
+
+		self::$providers[$classname] = $provider;
+		return self::$providers[$classname];
+	}
+	
+	/**
+	 * Creates a new instance of $classname with the specified arguments
+	 * @param string $classname
+	 * @param Container $container
+	 * @param string $args
+	 * @param array $filter
+	 * @param array $override
+	 * @throws \InvalidArgumentException
+	 * @throws \RuntimeException
 	 * @return object
 	 */
-	public static function create($classname, $_ = null) {
+	public static function createWith($classname, Container $container, $args = null, $filter = null, $override = null) {
 		if (!is_string($classname) || empty($classname)) {
 			throw new \InvalidArgumentException("Argument is not a valid class name");
 		}
 		
-		//obtain default container for this class
+		//obtain provider list for this class
 		$profile = Profiler::getClassProfile($classname);
-		$containerClass = is_null($profile->defaultContainer) ? self::$defaultContainer : $profile->defaultContainer;
-		
-		if (empty($containerClass)) {
-			throw new \RuntimeException("No default container has been set for class $classname");
+				
+		if (isset($profile->constructor)) {
+			//build constructor parameter list
+			$parameters = $profile->constructor->getParameters();
+			
+			if (is_null($args)) {
+				$args = [];
+			}
+			else {
+				$args = is_array($args) ? $args : [$args];
+			}
+				
+			foreach ($parameters as $param) {
+				if (!empty($args)) {
+					$params[] = array_shift($args);
+				}
+				elseif (array_key_exists($param->getName(), $profile->constructorParams)) {
+					//get parameter id
+					$parameterId = $profile->constructorParams[$param->getName()];
+						
+					if ($container->offsetExists($parameterId)) {
+						//add service to constructor arguments
+						$params[] = $container->offsetGet($parameterId);
+					}
+					elseif ($param->isOptional()) {
+						$params[] = $param->getDefaultValue();
+					}
+					elseif (!$profile->isStrict) {
+						$params[] = null;
+					}
+					else {
+						throw new \RuntimeException(sprintf("Argument %s in class '%s' constructor is associated to a unknown service '%s'", $param->getName(), $class, $parameterId));
+					}
+				}
+				elseif ($param->isOptional()) {
+					$params[] = $param->getDefaultValue();
+				}
+				else {
+					throw new \RuntimeException("Not enough arguments provided for '$classname' constructor");
+				}
+			}
+			
+			$instance = $profile->class->newInstanceArgs($params);
+		}
+		else {
+			$instance = new $classname;
 		}
 		
-		//create container and inject dependencies
-		$container = self::getContainer($containerClass);
-		
-		if ($container instanceof Container) {
-			return call_user_func_array([$container, 'create'], func_get_args());
-		}
-		elseif ($container instanceof \Pimple) {
-			$instance = $profile->class->newInstance();
-			self::inject($instance, $container);
-			return $instance;
-		}
-		
-		throw new \InvalidArgumentException("$containerClass is not a valid container class");
+		self::inject($instance, $container, $filter, $override);
+		return $instance;
 	}
 	
-	public static function inject(&$instance, $container, $filter, $override) {
+	/**
+	 * Creates a new instance of $classname from the associated providers
+	 * @param string $classname
+	 * @param array $args
+	 * @param array $filter
+	 * @param array $override
+	 * @throws \RuntimeException
+	 * @return object
+	 */
+	public static function create($classname, $args = null, $filter = null, $override = null) {
+		//obtain provider list for this class
+		$profile = Profiler::getClassProfile($classname);
+		$providers = $profile->providers;
+		
+		if (empty($providers)) {
+			throw new \RuntimeException("Class $classname does not have any provider associated with it");
+		}
+
+		//create new container and register all providers
+		$container = new Container();
+		
+		foreach ($providers as $provider) {
+			$providerInstance = self::getProvider($provider);
+			$providerInstance->register($container);
+		}
+
+		return self::createWith($classname, $container, $args, $filter = null, $override = null);
+	}
+	
+	/**
+	 * Injects a set of dependencies into an instance
+	 * @param object $instance
+	 * @param Pimple\Container $container
+	 * @param array $filter Which dependencies must be injected
+	 * @param array $override An associative array that overrides a set of injected properties
+	 * @throws \InvalidArgumentException
+	 * @throws \RuntimeException
+	 */
+	public static function inject(&$instance, $container, $filter = null, $override = null) {
 		if (!is_object($instance)) {
 			throw new \InvalidArgumentException("Argument is not a valid object");
 		}
@@ -72,7 +153,7 @@ class Injector {
 		if (!is_object($container)) {
 			throw new \InvalidArgumentException("Container is not a valid object");
 		}
-		elseif (!($container instanceof \Pimple)) {
+		elseif (!($container instanceof Container)) {
 			throw new \InvalidArgumentException("Container is not a valid container");
 		}
 		
@@ -134,15 +215,18 @@ class Injector {
 		
 				//check if service is available
 				if (!$container->offsetExists($serviceId)) {
-					throw new \RuntimeException("Property '$name' in class $classname is associated to a unknown service '$serviceId'");
-				}
-		
-				//set property value
-				if ($property->isStatic()) {
-					$property->setValue(null, $container->offsetGet($serviceId));
+					if ($profile->isStrict) {
+						throw new \RuntimeException("Property '$name' in class $classname is associated to a unknown service '$serviceId'");
+					}
 				}
 				else {
-					$property->setValue($instance, $container->offsetGet($serviceId));
+					//set property value
+					if ($property->isStatic()) {
+						$property->setValue(null, $container->offsetGet($serviceId));
+					}
+					else {
+						$property->setValue($instance, $container->offsetGet($serviceId));
+					}
 				}
 			}
 		}
@@ -199,32 +283,5 @@ class Injector {
 				}
 			}
 		}
-	}
-	
-	/**
-	 * Obtains/Stores a container
-	 * @param string $container_class
-	 * @throws \InvalidArgumentException
-	 * @return \Pimple
-	 */
-	public static function getContainer($container_class) {
-		static $ccontainer;
-
-		//initialize main container
-		if (is_null($ccontainer)) {
-			$ccontainer = new \Pimple();
-		}
-		
-		if (!$ccontainer->offsetExists($container_class)) {
-			if (!class_exists($container_class, true)) {
-				throw new \InvalidArgumentException("Class $container_class could not be found");
-			}
-			
-			$ccontainer[$container_class] = function ($c) {
-				return new $container_class;
-			};
-		}
-		
-		return $ccontainer[$container_class];
 	}
 }

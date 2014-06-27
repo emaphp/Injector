@@ -5,9 +5,13 @@ use Acme\Services\MailService;
 use Acme\Services\HTTPService;
 
 /**
- * @inject.container Acme\Containers\TestContainer
+ * @inject.provider Acme\Providers\MailServiceProvider
  */
 class TestComponentC {
+	public $name;
+	public $mail;
+	public $http;
+	
 	/**
 	 * @inject.param $service mail
 	 * @inject.param $http http
