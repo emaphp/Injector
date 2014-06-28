@@ -57,4 +57,15 @@ class ClassProfileTest extends \PHPUnit_Framework_TestCase {
 		$this->assertArrayHasKey('http', $profile->reflectionProperties);
 		$this->assertInstanceOf('\\ReflectionProperty', $profile->reflectionProperties['http']);
 	}
+	
+	public function testComponentY() {
+		$profile = new ClassProfile('Acme\Components\TestComponentY');
+		$this->assertNotEmpty($profile->providers);
+		$this->assertContains('Acme\Providers\AllServiceProvider', $profile->providers);
+	}
+	
+	public function testComponentX() {
+		$profile = new ClassProfile('Acme\Components\TestComponentX');
+		$this->assertEmpty($profile->providers);
+	}
 }

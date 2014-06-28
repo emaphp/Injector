@@ -75,6 +75,29 @@ class ClassProfile {
 	}
 	
 	/**
+	 * Obtains all providers for a given class
+	 * @param \ReflectionClass $class
+	 * @return array
+	 */
+	protected function getClassProviders(\ReflectionClass $class) {
+		$annotations = Facade::getAnnotations($class);
+		$values = $annotations->useNamespace(self::NS)->export();
+		
+		if (array_key_exists('provider', $values)) {
+			return is_array($values['provider']) ? $values['provider'] : [$values['provider']];
+		}
+		else {
+			//try getting providers from parent class
+			$extend = array_key_exists('extend', $values) ? (bool) $values['extend'] : true;
+			
+			if ($extend) {
+				$parent = $class->getParentClass();
+				return $parent instanceof \ReflectionClass ? $this->getClassProviders($parent) : [];
+			}
+		}
+	}
+	
+	/**
 	 * Initializes a class profile instance
 	 * @throws \RuntimeException
 	 */
@@ -85,10 +108,8 @@ class ClassProfile {
 		$annotations = Facade::getAnnotations($this->class);
 		$values = $annotations->useNamespace(self::NS)->export();
 		
-		//get default container class (if any)
-		if (array_key_exists('provider', $values)) {
-			$this->providers = is_array($values['provider']) ? $values['provider'] : [$values['provider']];
-		}
+		//get default providers
+		$this->providers = $this->getClassProviders($this->class);
 		
 		//is strict?
 		if (array_key_exists('strict', $values)) {
