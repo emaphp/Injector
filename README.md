@@ -1,11 +1,11 @@
 Injector
 ========
 
-A dependency injection class based on Pimple
+A dependency injection class based on Pimple 2
 
 **Author**: Emmanuel Antico<br/>
-**Last Modification**: 2013/08/24<br/>
-**Version**: 2.0.0
+**Last Modification**: 2014/06/28<br/>
+**Version**: 3.0.0
 
 <br/>
 Installation
@@ -19,341 +19,138 @@ Installation is made via composer. Add the following lines to the composer.json 
 ```json
 {
     "require": {
-		"injector/injector": "2.0.*"
+		"injector/injector": "~3.0"
 	}
 }
 ```
 
 <br/>
-Introduction
+Dependecies
+------------
+<br/>
+Injector requires the following packages to be installed:
+
+* [Pimple 2.1](https://github.com/fabpot/Pimple "")
+* [Minime\Annotations 1.13](https://github.com/marcioAlmada/annotations "")
+
+<br/>
+How to use
 ------------
 
 <br/>
-Injector is a dependency injection library based on Pimple. Its main feature is resolving all dependencies in a class by looking through its documentation comments. The next example illustrates how to define an object dependency through the *@inject* tag. This class depends on a service called *mail_service* which we'll declare using a **Container**.
+Injector is a dependency injection library that uses the *Pimple\Container* class to initialize a set of properties within an instance. This is done by adding the appropiate annotations to the class declaration.
 
-**Example class**
+<br/>
+>Step 1: Create a Provider
+
+A provider is a class that implements the *Pimple\ServiceProviderInterface* interface. This class sets a number of services (and parameters) inside a container.
 
 ```php
 <?php
-namespace Acme;
+namespace Acme\Providers;
 
-class MyClass {
-    /**
-     * We inject a mail service here
-     * @inject mail_service
-     */
-    protected $mail;
-    
-    /**
-     * And a XML parser here
-     * @inject xml_parser
-     */
-    public $parser;
+use Pimple\Container;
+use Pimple\ServiceProviderInterface;
+use Acme\Services\Logger;
+use Acme\Services\MySQLConnection;
 
-    public function getMail() {
-        return $this->mail();
+class MainProvider implements ServiceProviderInterface {
+    public function register(Container $container) {
+        //add some services
+        $container['logger'] = function ($c) {
+            return new Logger();
+        };
+        
+        $container['conn'] = function ($c) {
+            return new MySQLConnection('usr', 'psw');
+        };
+        
+        $container['environment'] = 'development';
     }
 }
 ```
 <br/>
-Containers are classes that extend directly from *Pimple* and also implement the *Iterable* interface. The next example shows a container class which declares a service named *mail_service*.
+>Step 2: Configure your class
 
-**Example container**
-```php
-<?php
-namespace Acme;
-
-use Injector\Container;
-
-class MyContainer extends Container {
-    public function __construct() {
-        //declaring the 'mail_service' element
-        $this['mail_service'] = new MailService();
-    }
-}
-```
-
-<br/>
-There are 2 possible ways of injecting properties. We can either use the *inject* method in the Container class or simply creating a new instance behind the scenes through the *create* method.
-
-**Inject dependencies**
-```php
-<?php
-use Acme\MyClass;
-use Acme\MyContainer;
-
-$o = new MyClass();
-$c = new MyContainer();
-
-//inject dependencies
-$c->inject($o);
-
-//do something useful
-$o->getMail()->send('Hello', 'j.doe@nsa.gov');
-
-```
-
-<br/>
-**Create instance from container**
+In order to indicate a class provider we add the @inject.provider annotation followed by the provider class name. Dependencies can now be injected through the @inject.service and @inject.param annotations.
 
 ```php
 <?php
-use Acme\MyContainer;
-
-$c = new MyContainer();
-
-//container creates a new instance of MyClass with all dependencies resolved
-$o = $c->create('Acme\MyClass');
-
-//do something useful
-$o->getMail()->send('Hello', 'j.doe@nsa.gov');
-
-```
-
-<br/>
-With *inject* we can also tell which services must be injected by adding the property names as additional parameters.
-
-**Additional parameters on injection**
-```php
-<?php
-use Acme\MyClass;
-use Acme\MailService;
-use Acme\XMLParser;
-use Injector\Container;
-
-$o = new MyClass();
-
-//create a custom container
-$c = new Container();
-$c['mail_service'] = function ($c) {
-    return new MailService();
-};
-$c['xml_parser'] = function ($c) {
-    return new XMLParser();
-};
-$c['curl_service'] = function ($c) {
-    $curl = curl_init();
-    return $curl;
-};
-
-//inject dependencies
-$c->inject($o, 'mail', 'parser');
-
-//do something useful
-$o->getMail()->send('Hello', 'j.doe@nsa.gov');
-$o->parser->parseXML('example.xml');
-```
-
-<br/>
-Any additional parameters used when creating an instance from a container will be sent directly to the class constructor.
-
-**Example class**
-```php
-<?php
-namespace Acme;
-
-class AnotherClass extends MyClass {
-    private $id;
-    private $status;
-    
-    public function __construct($id, $status = 1) {
-        $this->id = $id;
-        $this->status = $status;
-    }
-    
-    public function getId() {
-        return $this->id;
-    }
-    
-    public function getStatus() {
-        return $this->status;
-    }
-}
-```
-<br/>
-**Send parameters to class constructor**
-```php
-use Acme\MyContainer;
-
-$c = new MyContainer();
-$o = $c->create('Acme\AnotherClass', 'another_class');
-
-//will print 'another_class'
-echo $o->getId();
-
-//will print 1
-echo $o->getStatus();
-
-//'mail' was resolved as it was declared in MyClass
-$o->getMail()->send('Sup', 'j.doe@nsa.gov');
-```
-
-<br/>
-The *create* method also checks if dependencies must be resolved before invoking a class constructor. Syntax is slightly different as we need to tell which variable must hold the resolved dependency.
-
-**Example class**
-```php
-<?php
-namespace Acme;
-
-class ThirdClass {
-    private $encrypt;
-    private $message;
-    
-    /**
-     * @inject $encrypt aes256
-     */
-    public function __construct($encrypt, $message) {
-        $this->encrypt = $encrypt;
-        $this->message = $message;
-    }
-    
-    public function getMessage() {
-        return $this->encrypt->crypt($this->message);
-    }
-}
-```
-<br/>
-**Injecting constructor dependencies**
-```php
-<?php
-use Acme\AES128;
-use Acme\AES256;
-use Injector\Container;
-
-//create custom container
-$c = new Container();
-$c['salt'] = 'qwerty123';
-$c['aes128'] = function ($c) {
-    return new AES128($c['salt']);
-};
-$c['aes256'] = function ($c) {
-    return new AES256($c['salt']);
-};
-
-//create instance
-$o = $c->create('Acme\ThirdClass', 'Hello World');
-//do something useful
-echo $o->getMessage();
-```
-
-<br/>
-The Injector class
-------------------
-
-<br/>
-The Injector class provides some additional features that couldn't be covered by Containers, that is, being able to resolve dependencies from various containers.
-
-<br/>
-**Example class**
-
-<br/>
-This class obtains its dependencies from 2 different sources: *Acme\MyContainer* and *Acme\AnotherContainer*. Notice that service names must be prefixed using the container class full name.
-```php
-<?php
-namespace Acme;
-
-class ComplexClass {
-    /**
-     * @inject Acme\MyContainer::mail_service
-     */
-    private $mail;
-    
-    private $crypt;
-    
-    private $message;
-    
-    /**
-     * @inject $crypt Acme\AnotherContainer::aes128
-     */
-    public function __construct($crypt, $message) {
-        $this->crypt = $crypt;
-        $this->message = $message;
-    }
-    
-    public function getMessage() {
-        return $this->crypt->crypt($this->message);
-    }
-    
-    public function sendMail() {
-        $this->mail->send($this->getMessage(), 'jdoe@nsa.gov');
-    }
-}
-```
-
-<br/>
-**Using the Injector class**
-```php
-<?php
-//create instance
-$o = Injector::create('Acme\ComplexClass', 'My message');
-//do something useful
-$o->sendMail();
-```
-
-<br/>
-**Setting a defaut container**
-
-<br/>
-The Injector class works as a container of containers which is useful to determine dependencies from various sources. Still, defining a default container might result more productive. This is done by adding the container class full name in the class doc comments after a *@container* tag.
-
-```php
-<?php
-namespace Acme;
+namespace Acme\Components;
 
 /**
- * @container Acme\MyContainer
+ * @inject.provider Acme\Providers\MainProvider
  */
-class ComplexClass {
-    /**
-     * We can now avoid telling the container class here
-     * @inject mail_service
-     */
-    private $mail;
-    
-    private $crypt;
-    
-    private $message;
+class MyComponent {
+    private $name;
+    private $env;    
     
     /**
-     * @inject $crypt Acme\AnotherContainer::aes128
+     * @inject.service logger
      */
-    public function __construct($crypt, $message) {
-        $this->crypt = $crypt;
-        $this->message = $message;
+    private $logger;
+    
+    /**
+     * @inject.service conn
+     */
+    private $connection;
+    
+    /**
+     * @inject.param $env environment
+     */
+    public function __construct($name, $env) {
+        $this->name = $name;
+        $this->env = $env;
     }
     
-    public function getMessage() {
-        return $this->crypt->crypt($this->message);
+    public function getEnvironment() {
+        return $this->env;
+    }
+
+    public function getName() {
+        return $this->name;
     }
     
-    public function sendMail() {
-        $this->mail->send($this->getMessage(), 'jdoe@nsa.gov');
+    public function getLogger() {
+        return $this->logger;
+    }
+    
+    public function getConnection() {
+        return $this->connection;
     }
 }
 ```
 
 <br/>
-**Overriding a default container**
+>Step 3: Create an instance
 
-We can override a default container by calling the *createFrom* method in the Injector class. This method expects a Container object or class name as first parameter. Dependencies that were previously resolved from the default container specified in the class now are obtained from this new container.
+Instances are created through the *create* static method in the *Injector\Injector* class. Additional arguments could be added as an array.
 
 ```php
 <?php
-use Injector\Container;
-use Acme\SendMailService;
+use Injector\Injector;
+use Acme\Services\SQLiteConnection;
 
-//create custom container
-$c = new Container();
-$c['mail_service'] = function ($c) {
-    return new SendMailService();
-}
+$component = Injector::create('Acme\Components\MyComponent', ['My Component']);
+$component->getEnvironment(); //returns 'development'
+$component->getName(); //returns 'My Component'
+$component->getLogger()->debug('Component initialized');
 
-//create instance
-$o = Injector::createFrom($c, 'Acme\ComplexClass', 'A message');
-//do something useful
-$o->sendMail();
+//overriding a constructor parameter
+$component = Injector::create('Acme\Components\MyComponent', ['My Component', 'production']);
+$component->getEnvironment(); //returns 'production'
+
+//filtering dependencies
+$component = Injector::create('Acme\Components\MyComponent', ['My Component'], ['logger']);
+$component->getLogger(); //Logger
+$component->getConnection(); // NULL
+
+//overriding dependencies
+$component = Injector::create('Acme\Components\MyComponent', ['My Component'], null, ['conn' => new SQLiteConnection('file.db')]);
+$component->getConnection(); // SQLiteConnection
 ```
+
+
 
 <br/>
 License

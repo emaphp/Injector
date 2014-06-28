@@ -71,11 +71,25 @@ class Injector {
 				if (!empty($args)) {
 					$params[] = array_shift($args);
 				}
+				elseif (is_array($override) && array_key_exists($param->getName(), $profile->constructorParams) && array_key_exists($profile->constructorParams[$param->getName()], $override)) {
+					$params[] = $override[$profile->constructorParams[$param->getName()]];
+				}
 				elseif (array_key_exists($param->getName(), $profile->constructorParams)) {
 					//get parameter id
 					$parameterId = $profile->constructorParams[$param->getName()];
-						
-					if ($container->offsetExists($parameterId)) {
+					
+					if (is_array($filter) && !in_array($parameterId, $filter)) {
+						if ($param->isOptional()) {
+							$params[] = $param->getDefaultValue();
+						}
+						elseif (!$profile->isStrict) {
+							$params[] = null;
+						}
+						else {
+							throw new \RuntimeException(sprintf("Argument %s in class '%s' constructor is associated to a filtered service '%s'", $param->getName(), $classname, $parameterId));
+						}
+					}
+					elseif ($container->offsetExists($parameterId)) {
 						//add service to constructor arguments
 						$params[] = $container->offsetGet($parameterId);
 					}
@@ -86,7 +100,7 @@ class Injector {
 						$params[] = null;
 					}
 					else {
-						throw new \RuntimeException(sprintf("Argument %s in class '%s' constructor is associated to a unknown service '%s'", $param->getName(), $class, $parameterId));
+						throw new \RuntimeException(sprintf("Argument %s in class '%s' constructor is associated to a unknown service '%s'", $param->getName(), $classname, $parameterId));
 					}
 				}
 				elseif ($param->isOptional()) {
@@ -133,7 +147,7 @@ class Injector {
 			$providerInstance->register($container);
 		}
 
-		return self::createWith($classname, $container, $args, $filter = null, $override = null);
+		return self::createWith($classname, $container, $args, $filter, $override);
 	}
 	
 	/**
@@ -205,82 +219,39 @@ class Injector {
 		$profile = Profiler::getClassProfile($classname);
 		$services = $container->keys();
 		
-		if (empty($filter)) {
-			foreach ($profile->reflectionProperties as $name => $property) {
-				if (is_array($override) && array_key_exists($services[$i], $override)) {
+		foreach ($profile->reflectionProperties as $name => $property) {
+			$serviceId = $profile->properties[$name];
+		
+			if (is_array($override) && array_key_exists($serviceId, $override)) {
+				if ($property->isStatic()) {
+					$property->setValue(null, $override[$serviceId]);
+				}
+				else {
+					$property->setValue($instance, $override[$serviceId]);
+				}
+			}
+			else {
+				if (is_array($filter) && !in_array($serviceId, $filter)) {
 					continue;
 				}
-		
-				$serviceId = $profile->properties[$name];
-		
-				//check if service is available
+				
 				if (!$container->offsetExists($serviceId)) {
 					if ($profile->isStrict) {
 						throw new \RuntimeException("Property '$name' in class $classname is associated to a unknown service '$serviceId'");
 					}
-				}
-				else {
-					//set property value
-					if ($property->isStatic()) {
-						$property->setValue(null, $container->offsetGet($serviceId));
-					}
-					else {
-						$property->setValue($instance, $container->offsetGet($serviceId));
-					}
-				}
-			}
-		}
-		else {
-			foreach ($filter as $property) {
-				if (is_array($override) && array_key_exists($property, $override)) {
+					
 					continue;
 				}
-			
-				if (!array_key_exists($property, $profile->properties)) {
-					throw new \RuntimeException("Property '$property' does not appear to be an injectable property");
-				}
-			
-				$serviceId = $profile->properties[$property];
-			
-				if (!$container->offsetExists($serviceId)) {
-					throw new \RuntimeException("Property '$name' in class $classname is associated to a unknown service '$serviceId'");
-				}
-			
-				//set property value
-				if ($profile->reflectionProperties[$property]->isStatic()) {
-					$profile->reflectionProperties[$property]->setValue(null, $container->offsetGet($serviceId));
-				}
 				else {
-					$profile->reflectionProperties[$property]->setValue($instance, $container->offsetGet($serviceId));
-				}
-			}
-		}
-		
-		//override properties
-		if (is_array($override) && !empty($override)) {
-			foreach ($override as $service => $value) {
-				if (array_key_exists($service, $profile->reflectionProperties)) {
-					if ($profile->reflectionProperties[$service]->isStatic()) {
-						$profile->reflectionProperties[$service]->setValue(null, $value);
-					}
-					else {
-						$profile->reflectionProperties[$service]->setValue($instance, $value);
-					}
-				}
-				elseif ($profile->class->hasProperty($service)) {
-					$property = $profile->class->getProperty($service);
-					$property->setAccessible(true);
-						
+					$value = $container->offsetGet($serviceId);
+					
 					if ($property->isStatic()) {
 						$property->setValue(null, $value);
 					}
 					else {
 						$property->setValue($instance, $value);
 					}
-				}
-				else {
-					throw new \RuntimeException("Cannot override non existant property '$service'");
-				}
+				}				
 			}
 		}
 	}
