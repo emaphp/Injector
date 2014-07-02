@@ -4,8 +4,8 @@ Injector
 A dependency injection class based on Pimple 2
 
 **Author**: Emmanuel Antico<br/>
-**Last Modification**: 2014/06/28<br/>
-**Version**: 3.0.0
+**Last Modification**: 2014/07/02<br/>
+**Version**: 3.1.0
 
 <br/>
 Installation
@@ -150,7 +150,26 @@ $component = Injector::create('Acme\Components\MyComponent', ['My Component'], n
 $component->getConnection(); // SQLiteConnection
 ```
 
+<br/>
+>Step 3 (alt): Inject dependencies
 
+You could also inject dependencies directly through the *inject* method using a custom made container.
+
+```php
+<?php
+use Injector\Injector;
+
+//create container
+$container = new Pimple\Container;
+$provider = new Acme\Providers\MainProvider();
+$provider->register($container);
+
+//inject dependencies
+$component = new CustomComponent();
+Injector::inject($component, $container);
+//...
+$component->getLogger()->debug('Component initialized');
+```
 
 <br/>
 License
