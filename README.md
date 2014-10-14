@@ -1,11 +1,11 @@
 Injector
 ========
 
-A dependency injection class based on Pimple 2
+A dependency injection class based on Pimple 3
 
 **Author**: Emmanuel Antico<br/>
-**Last Modification**: 2014/07/02<br/>
-**Version**: 3.1.0
+**Last Modification**: 2014/10/14<br/>
+**Version**: 4.0
 
 <br/>
 Installation
@@ -19,19 +19,19 @@ Installation is made via composer. Add the following lines to the composer.json 
 ```json
 {
     "require": {
-		"injector/injector": "~3.0"
+		"injector/injector": "4.0.*"
 	}
 }
 ```
 
 <br/>
-Dependecies
+Dependencies
 ------------
 <br/>
 Injector requires the following packages to be installed:
 
-* [Pimple 2.1](https://github.com/fabpot/Pimple "")
-* [Minime\Annotations 1.13](https://github.com/marcioAlmada/annotations "")
+* [Pimple 3](https://github.com/fabpot/Pimple "")
+* [Omocha 1.1](https://github.com/emaphp/omocha "")
 
 <br/>
 How to use
@@ -72,31 +72,31 @@ class MainProvider implements ServiceProviderInterface {
 <br/>
 >Step 2: Configure your class
 
-In order to indicate a class provider we add the @inject.provider annotation followed by the provider class name. Dependencies can now be injected through the @inject.service and @inject.param annotations.
+In order to indicate a class provider we add the @Provider annotation followed by the provider class name. Dependencies can now be injected through the @Inject annotation. Notice that the syntax used for injecting contructor arguments differs a bit from the others.
 
 ```php
 <?php
 namespace Acme\Components;
 
 /**
- * @inject.provider Acme\Providers\MainProvider
+ * @Provider Acme\Providers\MainProvider
  */
 class MyComponent {
     private $name;
     private $env;    
     
     /**
-     * @inject.service logger
+     * @Inject logger
      */
     private $logger;
     
     /**
-     * @inject.service conn
+     * @Inject conn
      */
     private $connection;
     
     /**
-     * @inject.param $env environment
+     * @Inject($env) environment
      */
     public function __construct($name, $env) {
         $this->name = $name;
@@ -169,6 +169,34 @@ $component = new CustomComponent();
 Injector::inject($component, $container);
 //...
 $component->getLogger()->debug('Component initialized');
+```
+
+<br/>
+>Subclasses
+
+Subclasses can extend the same set of providers from its parent class by adding the *@ExtendInject* annotation.
+
+```php
+<?php
+//A.php
+
+/*
+ * Set class providers:
+ * @Provider MainProvider
+ * @Provider CustomProvider
+ */
+class A {
+}
+
+//B.php
+
+/**
+ * Obtain providers from parent class:
+ * @ExtendInject
+ */
+class B extends A {
+}
+
 ```
 
 <br/>
