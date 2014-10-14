@@ -14,7 +14,7 @@ class Injector {
 	 * Providers array
 	 * @var array
 	 */
-	protected static $providers = array();
+	protected static $providers = [];
 	
 	/**
 	 * Obtains a provider class instance

@@ -2,24 +2,24 @@
 namespace Acme\Components;
 
 /**
- * @inject.provider Acme\Providers\ExampleProvider
+ * @Provider Acme\Providers\ExampleProvider
  */
 class ExampleComponent {
 	private $name;
 	private $env;
 	
 	/**
-	 * @inject.service logger
+	 * @Inject logger
 	 */
 	private $logger;
 	
 	/**
-	 * @inject.service conn
+	 * @Inject conn
 	 */
 	private $connection;
 	
 	/**
-	 * @inject.param $env environment
+	 * @Inject($env) environment
 	 */
 	public function __construct($name, $env) {
 		$this->name = $name;

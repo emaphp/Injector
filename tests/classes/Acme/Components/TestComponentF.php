@@ -2,12 +2,12 @@
 namespace Acme\Components;
 
 /**
- * @inject.strict
- * @inject.provider Acme\Providers\MailServiceProvider
+ * @Provider Acme\Providers\MailServiceProvider
+ * @StrictInject
  */
 class TestComponentF {
 	/**
-	 * @inject.service mail
+	 * @Inject mail
 	 */
 	public $mail;
 }

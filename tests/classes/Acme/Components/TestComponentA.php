@@ -7,7 +7,7 @@ class TestComponentA {
 	public $mail;
 	
 	/**
-	 * @inject.param $service mail
+	 * @Inject($service) mail
 	 */
 	public function __construct(MailService $service) {
 		$this->mail = $service;

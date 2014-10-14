@@ -2,16 +2,16 @@
 namespace Acme\Components;
 
 /**
- * @inject.provider Acme\Providers\AllServiceProvider 
+ * @Provider Acme\Providers\AllServiceProvider 
  */
 class TestComponentI {
 	/**
-	 * @inject.service mail
+	 * @Inject mail
 	 */
 	private $mail;
 	
 	/**
-	 * @inject.service http
+	 * @Inject http
 	 */
 	protected $http;
 	

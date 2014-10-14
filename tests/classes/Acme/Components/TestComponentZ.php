@@ -3,7 +3,7 @@ namespace Acme\Components;
 
 class TestComponentZ extends TestComponentA {
 	/**
-	 * @inject.service http
+	 * @Inject http
 	 */
 	private $http;
 	

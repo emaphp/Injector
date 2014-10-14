@@ -2,7 +2,7 @@
 namespace Acme\Components;
 
 /**
- * @inject.extend false
+ * @ExtendInject false
  */
 class TestComponentX extends TestComponentI {
 }

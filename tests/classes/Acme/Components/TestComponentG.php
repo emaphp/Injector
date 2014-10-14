@@ -2,17 +2,17 @@
 namespace classes\Acme\Components;
 
 /**
- * @inject.strict
- * @inject.provider Acme\Provider\HTTPServiceProvider
+ * @Inject Acme\Provider\HTTPServiceProvider
+ * @StrictInject
  */
 class TestComponentG {
 	/**
-	 * @inject.service mail
+	 * @Inject mail
 	 */
 	public $mail;
 	
 	/**
-	 * @inject.service http
+	 * @Inject http
 	 */
 	public $http;
 }

@@ -5,8 +5,8 @@ use Acme\Services\MailService;
 use Acme\Services\HTTPService;
 
 /**
- * @inject.provider Acme\Providers\MailServiceProvider
- * @inject.provider Acme\Providers\HTTPServiceProvider
+ * @Provider Acme\Providers\MailServiceProvider
+ * @Provider Acme\Providers\HTTPServiceProvider
  */
 class TestComponentH {
 	public $name;
@@ -15,8 +15,8 @@ class TestComponentH {
 	public $id;
 	
 	/**
-	 * @inject.param $service mail
-	 * @inject.param $http http
+	 * @Inject($service) mail
+	 * @Inject($http) http
 	 */
 	public function __construct($name, MailService $service, HTTPService $http, $id = 1) {
 		$this->name = $name;

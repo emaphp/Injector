@@ -1,7 +1,8 @@
 <?php
 namespace Injector;
 
-use Minime\Annotations\Facade;
+use Omocha\Omocha;
+use Omocha\Filter;
 
 /**
  * Stores a class profile
@@ -9,12 +10,6 @@ use Minime\Annotations\Facade;
  * @package Injector
  */
 class ClassProfile {
-	/**
-	 * Default annotation namespace
-	 * @var string
-	 */
-	const NS = 'inject';
-	
 	/**
 	 * Reflection class
 	 * @var \ReflectionClass
@@ -43,19 +38,19 @@ class ClassProfile {
 	 * Constructor injection values
 	 * @var array
 	 */
-	public $constructorParams = array();
+	public $constructorParams = [];
 	
 	/**
 	 * Injection properties
 	 * @var array
 	 */
-	public $properties = array();
+	public $properties = [];
 	
 	/**
 	 * Reflection properties array
 	 * @var array
 	 */
-	public $reflectionProperties = array();
+	public $reflectionProperties = [];
 	
 	/**
 	 * Indicates if all dependecies must be fullfiled
@@ -71,7 +66,59 @@ class ClassProfile {
 	 */
 	public function __construct($className) {
 		$this->className = $className;
-		$this->initialize();
+		
+		//obtain class annotations
+		$this->class = new \ReflectionClass($this->className);
+		$annotations = Omocha::getAnnotations($this->class);
+		$this->providers = $this->getClassProviders($this->class);
+		
+		//check if injection is strict
+		if ($annotations->has('StrictInject')) {
+			$this->isStrict = (boolean) $annotations->get('StrictInject')->getValue();
+		}
+		
+		//parse properties
+		$properties = $this->class->getProperties();
+		
+		foreach ($properties as $property) {
+			$propertyAnnotations = Omocha::getAnnotations($property);
+				
+			//check if is a valid injected property
+			if ($propertyAnnotations->has('Inject')) {
+				//service to inject
+				$service = (string) $propertyAnnotations->get('Inject')->getValue();
+		
+				if (!empty($service)) {
+					$propertyName = $property->getName();
+						
+					//store ReflectionProperty instance and make it accesible
+					$this->properties[$propertyName] = $service;
+					$this->reflectionProperties[$propertyName] = $property;
+					$this->reflectionProperties[$propertyName]->setAccessible(true);
+				}
+			}
+		}
+		
+		//parse constructor
+		$this->constructor = $this->class->getConstructor();
+		
+		if (!is_null($this->constructor)) {
+			$constructorAnnotations = Omocha::getAnnotations($this->constructor);
+				
+			//obtain injected arguments
+			if ($constructorAnnotations->has('Inject')) {
+				$injectedArgs = $constructorAnnotations->find('Inject', Filter::HAS_ARGUMENT | Filter::TYPE_STRING);
+		
+				foreach ($injectedArgs as $argument) {
+					$service = $argument->getValue();
+						
+					if (!empty($service)) {
+						$argumentName = $this->parseArgumentName($argument->getArgument());
+						$this->constructorParams[$argumentName] = $service;
+					}
+				}
+			}
+		}
 	}
 	
 	/**
@@ -80,101 +127,45 @@ class ClassProfile {
 	 * @return array
 	 */
 	protected function getClassProviders(\ReflectionClass $class) {
-		$annotations = Facade::getAnnotations($class);
-		$values = $annotations->useNamespace(self::NS)->export();
+		$annotations = Omocha::getAnnotations($class);
 		
-		if (array_key_exists('provider', $values)) {
-			return is_array($values['provider']) ? $values['provider'] : [$values['provider']];
+		//get class providers
+		$providers = $annotations->find('Provider', Filter::TYPE_STRING);
+		
+		if (!empty($providers)) {
+			$classes = [];
+			
+			foreach ($providers as $provider) {
+				$classes[] = $provider->getValue();
+			}
+			
+			return $classes;
 		}
-		else {
-			//try getting providers from parent class
-			$extend = array_key_exists('extend', $values) ? (bool) $values['extend'] : true;
+		
+		//if no providers are specified try getting them from parent class
+		if ($annotations->has('ExtendInject')) {
+			$extend = $annotations->get('ExtendInject')->getValue();
 			
 			if ($extend) {
 				$parent = $class->getParentClass();
 				return $parent instanceof \ReflectionClass ? $this->getClassProviders($parent) : [];
 			}
 		}
+		
+		return [];
 	}
-	
+
 	/**
-	 * Initializes a class profile instance
+	 * Parses a contructor argument expression
+	 * @param string $argumentName
 	 * @throws \RuntimeException
+	 * @return string
 	 */
-	protected function initialize() {
-		$this->class = new \ReflectionClass($this->className);
-		
-		//parse class annotations
-		$annotations = Facade::getAnnotations($this->class);
-		$values = $annotations->useNamespace(self::NS)->export();
-		
-		//get default providers
-		$this->providers = $this->getClassProviders($this->class);
-		
-		//is strict?
-		if (array_key_exists('strict', $values)) {
-			$this->isStrict = is_array($values['strict']) ? array_shift($values['strict']) : (bool) $values['strict'];
+	protected function parseArgumentName($argumentName) {
+		if (!preg_match('@^\$?(\w+)$@', $argumentName, $matches)) {
+			throw new \RuntimeException(sprintf("Invalid annotation expression found in %s __construct", $this->className));
 		}
 		
-		//parse properties
-		$properties = $this->class->getProperties();
-		
-		foreach ($properties as $property) {
-			$annotations = Facade::getAnnotations($property);
-			$values = $annotations->useNamespace(self::NS)->export();
-			
-			if (array_key_exists('service', $values)) {
-				//store service id
-				$propertyName = $property->getName();
-				$this->properties[$propertyName] = is_array($values['service']) ? array_shift($values['service']) : $values['service'];
-				
-				//store ReflectionProperty instance and make it accesible
-				$this->reflectionProperties[$propertyName] = $property;
-				$this->reflectionProperties[$propertyName]->setAccessible(true);
-			}
-		}
-		
-		//parse constructor
-		$this->constructor = $this->class->getConstructor();
-		
-		if (!is_null($this->constructor)) {
-			$annotations = Facade::getAnnotations($this->constructor);
-			$values = $annotations->useNamespace(self::NS)->export();
-			
-			if (array_key_exists('param', $values)) {
-				if (is_array($values['param'])) {
-					foreach ($values['param'] as $arg) {
-						list($argname, $argid) = $this->parseParameter($arg);
-							
-						if ($argname) {
-							$this->constructorParams[$argname] = $argid;
-						}
-					}
-				}
-				else {
-					list($argname, $argid) = $this->parseParameter($values['param']);
-			
-					if ($argname) {
-						$this->constructorParams[$argname] = $argid;
-					}
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Parses an injected argument expression
-	 * @param string $str
-	 * @return array
-	 * @throws \RuntimeException
-	 */
-	protected function parseParameter($str) {
-		$regex = '/(?:\s*)?\$?(\w+)(?:\s+)(\w+)(?:\s*)?$/';
-		
-		if (preg_match($regex, $str, $matches)) {
-			return [$matches[1], $matches[2]];
-		}
-		
-		throw new \RuntimeException(sprintf("Invalid expression found in %s __construct method annotation", $this->className));
+		return $matches[1];
 	}
 }

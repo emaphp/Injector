@@ -12,8 +12,8 @@
     ]
     ,
     "require": {
-        "pimple/pimple": "v2.1.0",
-        "minime/annotations": "~1.12"
+        "pimple/pimple": "3.0.0",
+        "omocha/omocha": "1.1.*"
     },
     "autoload": {
         "psr-0": {"Injector": "lib/"}
